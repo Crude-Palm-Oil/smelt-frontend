@@ -1,4 +1,4 @@
-# CertGuard — TLS Certificate Compliance Checker
+# smelt — TLS Certificate Compliance Checker
 
 > DECO3801 Project 15 — Team Crude Palm Oil
 
