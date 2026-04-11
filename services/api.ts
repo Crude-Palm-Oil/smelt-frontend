@@ -14,7 +14,7 @@ export async function getResults(scanId: string) {
 }
 
 export async function getReports() {
-  const res = await fetch(`${REPORT_API}/reports`)
+  const res = await fetch(`${REPORT_API}/reports/reports`)
   if (!res.ok) throw new Error("Failed to fetch reports")
   return res.json();
 }
