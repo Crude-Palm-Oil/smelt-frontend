@@ -14,7 +14,27 @@ export async function getResults(scanId: string) {
 }
 
 export async function getReports() {
-  throw new Error("Not implemented — use mock data");
+  const res = await fetch(`${REPORT_API}/reports`)
+  if (!res.ok) throw new Error("Failed to fetch reports")
+  return res.json();
+}
+
+export async function downloadReport(scanId: string, filename: string) {
+  const res = await fetch(`${REPORT_API}/reports/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ scan_id: scanId }),
+  })
+
+  if (!res.ok) throw new Error("Failed to generate report")
+
+  const blob = await res.blob()
+  const url = window.URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = `${filename}.pdf`
+  a.click()
+  window.URL.revokeObjectURL(url)
 }
 
 export async function getPolicyProfiles() {
