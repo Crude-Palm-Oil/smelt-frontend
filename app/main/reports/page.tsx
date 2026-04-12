@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { mockReports } from "@/lib/MockData"
 import { ReportsTable } from "@/components/reports/ReportsTable"
 import { Report } from "@/types"
 import { getReports, downloadReport, viewReport } from "@/services/api"
@@ -35,11 +34,6 @@ export default function ReportsPage() {
     } catch (e) {
       console.error("Download failed", e)
     }
-  }
-
-  const handleDelete = (report: Report) => {
-    setReports((prev) => prev.filter((r) => r.id !== report.id))
-    // TODO: call DELETE endpoint
   }
 
   if (loading) return (
@@ -79,7 +73,6 @@ export default function ReportsPage() {
         reports={reports}
         onView={handleView}
         onDownload={handleDownload}
-        onDelete={handleDelete}
       />
     </div>
   )

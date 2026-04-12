@@ -1,7 +1,7 @@
 "use client"
 
 import { Report } from "@/types"
-import { Eye, Download, Trash2 } from "lucide-react"
+import { Eye, Download } from "lucide-react"
 
 const statusStyles: Record<Report["status"], string> = {
   pass: "bg-green-900/40 text-green-400 border border-green-700/50",
@@ -15,10 +15,9 @@ interface Props {
   reports: Report[]
   onView: (report: Report) => void
   onDownload: (report: Report) => void
-  onDelete: (report: Report) => void
 }
 
-export function ReportsTable({ reports, onView, onDownload, onDelete }: Props) {
+export function ReportsTable({ reports, onView, onDownload}: Props) {
   return (
     <div className="rounded-md border border-zinc-800 overflow-hidden">
       <table className="w-full text-sm">
@@ -67,12 +66,6 @@ export function ReportsTable({ reports, onView, onDownload, onDelete }: Props) {
                     className="text-zinc-500 hover:text-zinc-200 transition-colors"
                   >
                     <Download size={15} />
-                  </button>
-                  <button
-                    onClick={() => onDelete(report)}
-                    className="text-zinc-500 hover:text-red-400 transition-colors"
-                  >
-                    <Trash2 size={15} />
                   </button>
                 </div>
               </td>
