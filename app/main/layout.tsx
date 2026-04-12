@@ -1,13 +1,13 @@
-import { Sidebar } from "@/components/layout";
-import { Topbar } from "@/components/layout";
+import Sidebar from "@/components/layout/sidebar";
+import Topbar from "@/components/layout/topbar";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen bg-[#0c0c0c]">
+    <div className="flex">
       <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1">
         <Topbar />
-        <main className="flex-1 overflow-auto p-8">{children}</main>
+        {children}
       </div>
     </div>
   );

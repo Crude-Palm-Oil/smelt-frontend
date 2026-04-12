@@ -1,4 +1,4 @@
-export const APP_NAME = "CertGuard";
+export const APP_NAME = "Smelt";
 
 export const ROUTES = {
   DASHBOARD: "/dashboard",
