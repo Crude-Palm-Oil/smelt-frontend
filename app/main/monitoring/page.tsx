@@ -1,12 +1,11 @@
-export default function monitoringPage() {
+import MonitoringTable from "@/components/monitoring/MonitoringTable";
+import AlertHistoryTable from "@/components/monitoring/AlertHistoryTable";
+
+export default function MonitoringPage() {
   return (
-    <div>
-      <h1 className="text-sm font-mono text-neutral-300 uppercase tracking-wide">
-        monitoring
-      </h1>
-      <p className="text-xs font-mono text-neutral-500 mt-2">
-        TODO: implement monitoring page
-      </p>
+    <div className="flex flex-col gap-10 p-8">
+      <MonitoringTable />
+      <AlertHistoryTable />
     </div>
   );
 }
