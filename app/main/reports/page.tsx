@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { mockReports } from "@/lib/MockData"
 import { ReportsTable } from "@/components/reports/ReportsTable"
 import { Report } from "@/types"
-import { getReports, downloadReport } from "@/services/api"
+import { getReports, downloadReport, viewReport } from "@/services/api"
 import { Filter, Download } from "lucide-react"
 
 export default function ReportsPage() {
@@ -19,9 +19,13 @@ export default function ReportsPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const handleView = (report: Report) => {
+  const handleView = async (report: Report) => {
     console.log("View", report.id)
-    // TODO: open report preview or navigate to detail page
+    try {
+      await viewReport(report.id)
+    } catch (e) {
+      console.error("View failed", e)
+    }
   }
 
   const handleDownload = async (report: Report) => {
