@@ -6,8 +6,6 @@ import {
   Upload,
   Search,
   Plus,
-  ChevronRight,
-  Bell,
   Server,
 } from "lucide-react";
 
@@ -50,37 +48,6 @@ function TabButton({
   );
 }
 
-function ToggleRow({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: () => void;
-}) {
-  return (
-    <div className="flex items-center justify-between border-b border-white/8 py-5">
-      <span className="text-[15px] text-zinc-300">{label}</span>
-      <button
-        type="button"
-        onClick={onChange}
-        className={`relative h-6 w-11 rounded-full border transition ${
-          checked
-            ? "border-cyan-400/70 bg-cyan-400/10"
-            : "border-white/15 bg-white/5"
-        }`}
-      >
-        <span
-          className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full transition ${
-            checked ? "left-6 bg-cyan-400" : "left-1 bg-zinc-500"
-          }`}
-        />
-      </button>
-    </div>
-  );
-}
-
 function Card({
   title,
   subtitle,
@@ -110,10 +77,6 @@ function Card({
 
 export default function ScanPage() {
   const [activeTab, setActiveTab] = useState<ScanTab>("domain-ip");
-  const [checkChain, setCheckChain] = useState(true);
-  const [validateCtLogs, setValidateCtLogs] = useState(true);
-  const [checkOcspStapling, setCheckOcspStapling] = useState(false);
-  const [enforcePolicyOverrides, setEnforcePolicyOverrides] = useState(false);
 
   const tabTitle = useMemo(() => {
     if (activeTab === "domain-ip") return "Scan by Domain or IP Address";
@@ -269,6 +232,24 @@ export default function ScanPage() {
                     </button>
                   </div>
                 )}
+              </Card>
+              <Card title="RECENT SCANS" subtitle="Previous scan history">
+                <div className="divide-y divide-white/8">
+                  {recentScans.map((scan) => (
+                    <div
+                      key={scan.id}
+                      className="flex items-center justify-between py-5"
+                    >
+                      <div>
+                        <p className="text-base text-cyan-300">{scan.name}</p>
+                        <p className="mt-1 text-xs uppercase tracking-[0.16em] text-zinc-600">
+                          {scan.type}
+                        </p>
+                      </div>
+                      <span className="text-sm text-zinc-500">{scan.time}</span>
+                    </div>
+                  ))}
+                </div>
               </Card>
             </div>
           </div>
