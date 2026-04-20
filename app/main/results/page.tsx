@@ -1,12 +1,11 @@
-export default function resultsPage() {
+import ResultsStats from "@/components/results/ResultsStats";
+import ResultsTable from "@/components/results/ResultsTable";
+
+export default function ResultsPage() {
   return (
-    <div>
-      <h1 className="text-sm font-mono text-neutral-300 uppercase tracking-wide">
-        results
-      </h1>
-      <p className="text-xs font-mono text-neutral-500 mt-2">
-        TODO: implement results page
-      </p>
+    <div className="flex flex-col gap-8 p-8">
+      <ResultsStats />
+      <ResultsTable />
     </div>
   );
 }

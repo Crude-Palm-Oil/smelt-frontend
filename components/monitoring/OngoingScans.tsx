@@ -5,32 +5,38 @@ import { Terminal, CheckCircle2 } from "lucide-react";
 import { ongoingScans, type OngoingScan } from "@/lib/mock-monitoring-data";
 import ScanDetailModal, { type ScanDetail } from "./ScanDetailModal";
 
-function formatElapsed(startedAt: string, now: number): string {
-  const diff = Math.floor((now - new Date(startedAt).getTime()) / 1000);
+function formatElapsed(startedAtMs: number, now: number): string {
+  const diff = Math.floor((now - startedAtMs) / 1000);
   const m = Math.floor(diff / 60);
   const s = diff % 60;
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-function formatTime(startedAt: string): string {
-  return new Date(startedAt).toLocaleTimeString("en-US", { hour12: false });
+function formatTime(startedAtMs: number): string {
+  return new Date(startedAtMs).toLocaleTimeString("en-US", { hour12: false });
 }
 
 function ScanLine({
   scan,
+  anchor,
   now,
   onClick,
 }: {
   scan: OngoingScan;
-  now: number;
+  anchor: number | null;
+  now: number | null;
   onClick: () => void;
 }) {
+  const startedAtMs = anchor !== null ? anchor - scan.startedAtOffsetSec * 1000 : null;
+
   return (
     <button
       onClick={onClick}
       className="group flex w-full items-center gap-4 border-b border-emerald-500/5 px-4 py-2 text-left font-mono text-[13px] transition hover:bg-emerald-500/10"
     >
-      <span className="text-zinc-600">[{formatTime(scan.startedAt)}]</span>
+      <span className="text-zinc-600">
+        [{startedAtMs !== null ? formatTime(startedAtMs) : "--:--:--"}]
+      </span>
       <span className="font-semibold text-emerald-500">SCAN</span>
       <span className="min-w-[180px] truncate text-zinc-300 group-hover:text-emerald-300">
         {scan.name}
@@ -39,7 +45,7 @@ function ScanLine({
         <span className="scan-bar block h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent" />
       </span>
       <span className="tabular-nums text-emerald-400">
-        {formatElapsed(scan.startedAt, now)}
+        {startedAtMs !== null && now !== null ? formatElapsed(startedAtMs, now) : "--:--"}
       </span>
       <span className="hidden text-[10px] text-zinc-700 lg:inline">
         {scan.id.slice(0, 8)}
@@ -50,9 +56,13 @@ function ScanLine({
 
 export default function OngoingScans() {
   const [selected, setSelected] = useState<ScanDetail | null>(null);
-  const [now, setNow] = useState(() => Date.now());
+  const [anchor, setAnchor] = useState<number | null>(null);
+  const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
+    const mountTime = Date.now();
+    setAnchor(mountTime);
+    setNow(mountTime);
     if (ongoingScans.length === 0) return;
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
@@ -130,13 +140,17 @@ export default function OngoingScans() {
             <ScanLine
               key={scan.id}
               scan={scan}
+              anchor={anchor}
               now={now}
               onClick={() =>
                 setSelected({
                   id: scan.id,
                   name: scan.name,
                   status: "running",
-                  startedAt: scan.startedAt,
+                  startedAt:
+                    anchor !== null
+                      ? new Date(anchor - scan.startedAtOffsetSec * 1000).toISOString()
+                      : undefined,
                   config: scan.config,
                 })
               }
