@@ -1,10 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { AlertTriangle, ShieldX } from "lucide-react";
 import { failedScans } from "@/lib/mock-monitoring-data";
 import { timeAgo } from "@/lib/utils";
+import ScanDetailModal, { type ScanDetail } from "./ScanDetailModal";
 
 export default function AlertHistoryTable() {
+  const [selected, setSelected] = useState<ScanDetail | null>(null);
+
   if (failedScans.length === 0) {
     return (
       <section>
@@ -50,7 +54,17 @@ export default function AlertHistoryTable() {
             {failedScans.map((row) => (
               <tr
                 key={row.id}
-                className="border-b border-zinc-800/60 transition hover:bg-zinc-900/40 last:border-b-0"
+                onClick={() =>
+                  setSelected({
+                    id: row.id,
+                    name: row.name,
+                    status: "fail",
+                    scannedAt: row.scannedAt,
+                    config: row.config,
+                    issue: row.issues,
+                  })
+                }
+                className="cursor-pointer border-b border-zinc-800/60 transition hover:bg-zinc-900/40 last:border-b-0"
               >
                 <td className="px-5 py-4">
                   <p className="font-mono text-zinc-200">{row.name}</p>
@@ -72,6 +86,8 @@ export default function AlertHistoryTable() {
           </tbody>
         </table>
       </div>
+
+      <ScanDetailModal scan={selected} onClose={() => setSelected(null)} />
     </section>
   );
 }

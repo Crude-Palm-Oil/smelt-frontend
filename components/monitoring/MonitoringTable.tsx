@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Search } from "lucide-react";
 import { allScans, type ScanStatus } from "@/lib/mock-monitoring-data";
 import { timeAgo } from "@/lib/utils";
+import ScanDetailModal, { type ScanDetail } from "./ScanDetailModal";
 
 function statusBadge(status: ScanStatus) {
   if (status === "pass")
@@ -16,6 +17,7 @@ type Filter = "all" | "pass" | "fail";
 export default function MonitoringTable() {
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState<ScanDetail | null>(null);
 
   const filtered = allScans.filter((s) => {
     if (filter !== "all" && s.status !== filter) return false;
@@ -85,7 +87,16 @@ export default function MonitoringTable() {
               filtered.map((row) => (
                 <tr
                   key={row.id}
-                  className="border-b border-zinc-800/60 transition hover:bg-zinc-900/40 last:border-b-0"
+                  onClick={() =>
+                    setSelected({
+                      id: row.id,
+                      name: row.name,
+                      status: row.status,
+                      scannedAt: row.scannedAt,
+                      config: row.config,
+                    })
+                  }
+                  className="cursor-pointer border-b border-zinc-800/60 transition hover:bg-zinc-900/40 last:border-b-0"
                 >
                   <td className="px-5 py-4">
                     <p className="font-mono text-zinc-200">{row.name}</p>
@@ -110,6 +121,8 @@ export default function MonitoringTable() {
           </tbody>
         </table>
       </div>
+
+      <ScanDetailModal scan={selected} onClose={() => setSelected(null)} />
     </section>
   );
 }
