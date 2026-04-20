@@ -4,6 +4,7 @@ export interface OngoingScan {
   id: string;
   name: string;
   startedAt: string; // ISO timestamp
+  config: string;
 }
 
 export interface FailedScan {
@@ -27,16 +28,19 @@ export const ongoingScans: OngoingScan[] = [
     id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     name: "example.com",
     startedAt: new Date(Date.now() - 47_000).toISOString(),
+    config: "Default",
   },
   {
     id: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
     name: "api.example.com",
     startedAt: new Date(Date.now() - 123_000).toISOString(),
+    config: "Strict",
   },
   {
     id: "c3d4e5f6-a7b8-9012-cdef-123456789012",
     name: "mail.example.com",
     startedAt: new Date(Date.now() - 5_000).toISOString(),
+    config: "Default",
   },
 ];
 
