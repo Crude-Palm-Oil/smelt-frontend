@@ -23,9 +23,11 @@ export function LoginForm() {
       await new Promise((res) => setTimeout(res, 1000));
 
       if (email === "admin@smelt.com" && password === "password") {
-        router.push("/dashboard");
+        router.push("/main/dashboard");
+      } else if (email !== "admin@smelt.com"){
+        throw new Error("Email not registered");
       } else {
-        throw new Error("Invalid credentials");
+        throw new Error("Wrong Password")
       }
     } catch (err: any) {
       setError(err.message);
