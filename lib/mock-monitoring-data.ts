@@ -1,89 +1,110 @@
-// TODO: replace with API calls when backend is ready
+export type ScanStatus = "pass" | "fail";
 
-export type MonitorInterval = "6H" | "12H" | "24H";
-export type MonitorStatus = "HEALTHY" | "WARN" | "ALERT";
-export type AlertType = "FAIL" | "WARN" | "PASS";
-export type AlertStatus = "NEW" | "ACK";
-
-export interface MonitoredDomain {
-  domain: string;
-  interval: MonitorInterval;
-  lastCheck: string;
-  nextCheck: string;
-  status: MonitorStatus;
-  alerts: number;
+export interface OngoingScan {
+  id: string;
+  name: string;
+  startedAt: string; // ISO timestamp
 }
 
-export interface AlertHistoryItem {
-  domain: string;
-  type: AlertType;
-  message: string;
-  time: string;
-  status: AlertStatus;
+export interface FailedScan {
+  id: string;
+  name: string;
+  scannedAt: string;
+  issues: string;
+  config: string;
 }
 
-export const monitoredDomains: MonitoredDomain[] = [
+export interface ScanRecord {
+  id: string;
+  name: string;
+  scannedAt: string;
+  status: ScanStatus;
+  config: string;
+}
+
+export const ongoingScans: OngoingScan[] = [
   {
-    domain: "example.com",
-    interval: "24H",
-    lastCheck: "2024-03-15 09:00",
-    nextCheck: "2024-03-16 09:00",
-    status: "HEALTHY",
-    alerts: 0,
+    id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    name: "example.com",
+    startedAt: new Date(Date.now() - 47_000).toISOString(),
   },
   {
-    domain: "api.example.com",
-    interval: "6H",
-    lastCheck: "2024-03-15 08:00",
-    nextCheck: "2024-03-15 14:00",
-    status: "WARN",
-    alerts: 2,
+    id: "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+    name: "api.example.com",
+    startedAt: new Date(Date.now() - 123_000).toISOString(),
   },
   {
-    domain: "mail.example.com",
-    interval: "12H",
-    lastCheck: "2024-03-15 06:00",
-    nextCheck: "2024-03-15 18:00",
-    status: "ALERT",
-    alerts: 5,
-  },
-  {
-    domain: "cdn.example.com",
-    interval: "24H",
-    lastCheck: "2024-03-15 07:30",
-    nextCheck: "2024-03-16 07:30",
-    status: "HEALTHY",
-    alerts: 0,
+    id: "c3d4e5f6-a7b8-9012-cdef-123456789012",
+    name: "mail.example.com",
+    startedAt: new Date(Date.now() - 5_000).toISOString(),
   },
 ];
 
-export const alertHistory: AlertHistoryItem[] = [
+export const failedScans: FailedScan[] = [
   {
-    domain: "mail.example.com",
-    type: "FAIL",
-    message: "Certificate expired — immediate renewal required",
-    time: "2024-03-15 08:45",
-    status: "NEW",
+    id: "d4e5f6a7-b8c9-0123-defa-234567890123",
+    name: "mail.example.com",
+    scannedAt: "2026-04-19 08:45",
+    issues: "Certificate expired — immediate renewal required",
+    config: "Strict",
   },
   {
-    domain: "api.example.com",
-    type: "WARN",
-    message: "Certificate expires in 14 days",
-    time: "2024-03-15 08:00",
-    status: "NEW",
+    id: "e5f6a7b8-c9d0-1234-efab-345678901234",
+    name: "api.example.com",
+    scannedAt: "2026-04-19 08:00",
+    issues: "Weak signature algorithm detected (SHA-1)",
+    config: "Default",
   },
   {
-    domain: "mail.example.com",
-    type: "FAIL",
-    message: "Weak signature algorithm detected (SHA-1)",
-    time: "2024-03-14 22:10",
-    status: "ACK",
+    id: "f6a7b8c9-d0e1-2345-fabc-456789012345",
+    name: "legacy.example.com",
+    scannedAt: "2026-04-18 22:10",
+    issues: "TLS 1.0 deprecated protocol in use",
+    config: "Strict",
+  },
+];
+
+export const allScans: ScanRecord[] = [
+  {
+    id: "d4e5f6a7-b8c9-0123-defa-234567890123",
+    name: "mail.example.com",
+    scannedAt: "2026-04-19 08:45",
+    status: "fail",
+    config: "Strict",
   },
   {
-    domain: "api.example.com",
-    type: "WARN",
-    message: "Subject Alternative Name missing for subdomain",
-    time: "2024-03-14 14:00",
-    status: "ACK",
+    id: "e5f6a7b8-c9d0-1234-efab-345678901234",
+    name: "api.example.com",
+    scannedAt: "2026-04-19 08:00",
+    status: "fail",
+    config: "Default",
+  },
+  {
+    id: "a1b2c3d4-0000-0000-0000-000000000001",
+    name: "example.com",
+    scannedAt: "2026-04-19 07:30",
+    status: "pass",
+    config: "Default",
+  },
+  {
+    id: "a1b2c3d4-0000-0000-0000-000000000002",
+    name: "cdn.example.com",
+    scannedAt: "2026-04-18 22:00",
+    status: "pass",
+    config: "Default",
+  },
+  {
+    id: "f6a7b8c9-d0e1-2345-fabc-456789012345",
+    name: "legacy.example.com",
+    scannedAt: "2026-04-18 22:10",
+    status: "fail",
+    config: "Strict",
+  },
+  {
+    id: "a1b2c3d4-0000-0000-0000-000000000003",
+    name: "dashboard.example.com",
+    scannedAt: "2026-04-18 18:00",
+    status: "pass",
+    config: "Strict",
   },
 ];
