@@ -9,8 +9,6 @@ const statusStyles: Record<Report["status"], string> = {
   warn: "bg-yellow-900/40 text-yellow-400 border border-yellow-700/50",
 }
 
-const formatStyles = "bg-zinc-800 text-zinc-400 border border-zinc-700 text-xs px-2 py-0.5 rounded"
-
 interface Props {
   reports: Report[]
   onView: (report: Report) => void
@@ -23,7 +21,7 @@ export function ReportsTable({ reports, onView, onDownload }: Props) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-zinc-800">
-            {["REPORT ID", "DOMAIN", "DATE", "CERTS", "STATUS", "PDF", "FORMAT", "ACTIONS"].map((h) => (
+            {["REPORT ID", "DOMAIN", "DATE", "CERTS", "STATUS", "GENERATION STATUS", "ACTIONS"].map((h) => (
               <th
                 key={h}
                 className="px-4 py-3 text-left text-xs font-mono text-zinc-500 tracking-wider"
@@ -65,9 +63,6 @@ export function ReportsTable({ reports, onView, onDownload }: Props) {
                   ) : (
                     <span className="text-xs font-mono text-zinc-600">Pending</span>
                   )}
-                </td>
-                <td className="px-4 py-3">
-                  <span className={formatStyles}>{report.format}</span>
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
