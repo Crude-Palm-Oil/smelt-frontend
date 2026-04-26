@@ -16,7 +16,11 @@ export async function getResults(scanId: string) {
 export async function getReports() {
   const res = await fetch(`${REPORT_API}/reports/reports`)
   if (!res.ok) throw new Error("Failed to fetch reports")
-  return res.json();
+  const data = await res.json()
+  return data.map((r: any) => ({
+    ...r,
+    pdf_status: r.certs > 0 ? "ready" : "pending"
+  }))
 }
 
 export async function downloadReport(scanId: string, filename: string) {
