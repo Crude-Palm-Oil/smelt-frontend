@@ -1,0 +1,436 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import {
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  AlertOctagon,
+  Info,
+  MinusCircle,
+  ChevronDown,
+  ChevronRight,
+  FileCode,
+  Shield,
+  Target as TargetIcon,
+  Calendar,
+  ArrowLeft,
+} from "lucide-react";
+import {
+  type FinishedScan,
+  type Lint,
+  type LintFinding,
+  type LintSeverity,
+  getLintsForScan,
+} from "@/lib/mock-results-data";
+
+function severityIcon(severity: LintSeverity) {
+  switch (severity) {
+    case "pass":
+      return <CheckCircle2 size={12} className="text-emerald-400" />;
+    case "info":
+      return <Info size={12} className="text-sky-400" />;
+    case "warn":
+      return <AlertTriangle size={12} className="text-amber-400" />;
+    case "error":
+      return <XCircle size={12} className="text-red-400" />;
+    case "fatal":
+      return <AlertOctagon size={12} className="text-fuchsia-400" />;
+    case "na":
+      return <MinusCircle size={12} className="text-zinc-600" />;
+  }
+}
+
+function severityClass(severity: LintSeverity) {
+  switch (severity) {
+    case "pass":
+      return "bg-emerald-500/5 border-emerald-500/20";
+    case "info":
+      return "bg-sky-500/5 border-sky-500/20";
+    case "warn":
+      return "bg-amber-500/5 border-amber-500/20";
+    case "error":
+      return "bg-red-500/5 border-red-500/20";
+    case "fatal":
+      return "bg-fuchsia-500/5 border-fuchsia-500/30";
+    case "na":
+      return "bg-zinc-500/5 border-zinc-700";
+  }
+}
+
+function LintCard({ lint }: { lint: Lint }) {
+  const [expanded, setExpanded] = useState(false);
+  const [severityFilter, setSeverityFilter] = useState<LintSeverity | "all">("all");
+
+  const { summary, findings } = lint.lintResults;
+  const visibleFindings = findings.filter(
+    (f) => severityFilter === "all" || f.severity === severityFilter,
+  );
+
+  const statusBadge = (() => {
+    switch (lint.status) {
+      case "pass":
+        return (
+          <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-mono font-medium bg-emerald-500/10 text-emerald-400">
+            <CheckCircle2 size={10} /> PASS
+          </span>
+        );
+      case "info":
+        return (
+          <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-mono font-medium bg-sky-500/10 text-sky-400">
+            <Info size={10} /> INFO
+          </span>
+        );
+      case "warn":
+        return (
+          <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-mono font-medium bg-amber-500/10 text-amber-400">
+            <AlertTriangle size={10} /> WARN
+          </span>
+        );
+      case "fail":
+        return (
+          <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-mono font-medium bg-red-500/10 text-red-400">
+            <XCircle size={10} /> FAIL
+          </span>
+        );
+      case "fatal":
+        return (
+          <span className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-mono font-medium bg-fuchsia-500/10 text-fuchsia-400">
+            <AlertOctagon size={10} /> FATAL
+          </span>
+        );
+    }
+  })();
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/30">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-zinc-900/60"
+      >
+        {expanded ? (
+          <ChevronDown size={14} className="text-zinc-500" />
+        ) : (
+          <ChevronRight size={14} className="text-zinc-500" />
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="truncate font-mono text-sm text-zinc-200">{lint.targetName}</p>
+            {statusBadge}
+          </div>
+          <p className="truncate font-mono text-[10px] text-zinc-600">{lint.certIssuer}</p>
+        </div>
+        <div className="hidden items-center gap-3 font-mono text-[11px] sm:flex">
+          <span className="text-emerald-400">✓ {summary.pass}</span>
+          {summary.info > 0 && <span className="text-sky-400">i {summary.info}</span>}
+          {summary.warn > 0 && <span className="text-amber-400">! {summary.warn}</span>}
+          {summary.error > 0 && <span className="text-red-400">✕ {summary.error}</span>}
+          {summary.fatal > 0 && <span className="text-fuchsia-400">⊘ {summary.fatal}</span>}
+          <span className="text-zinc-600">— {summary.na}</span>
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="border-t border-zinc-800 bg-black/30 px-4 py-3">
+          <div className="mb-3 grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-600">Subject</p>
+              <p className="mt-0.5 truncate font-mono text-zinc-300" title={lint.certSubject}>
+                {lint.certSubject}
+              </p>
+            </div>
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-600">Issuer</p>
+              <p className="mt-0.5 truncate font-mono text-zinc-300" title={lint.certIssuer}>
+                {lint.certIssuer}
+              </p>
+            </div>
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-600">Cert ID</p>
+              <p className="mt-0.5 truncate font-mono text-zinc-300">{lint.certId}</p>
+            </div>
+            <div>
+              <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-600">Lint ID</p>
+              <p className="mt-0.5 truncate font-mono text-zinc-300">{lint.id}</p>
+            </div>
+          </div>
+
+          <div className="mb-3 flex flex-wrap items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-900/50 p-1">
+            <FilterChip
+              active={severityFilter === "all"}
+              label={`All (${findings.length})`}
+              onClick={() => setSeverityFilter("all")}
+            />
+            <FilterChip
+              active={severityFilter === "fatal"}
+              label={`Fatal (${findings.filter((f) => f.severity === "fatal").length})`}
+              onClick={() => setSeverityFilter("fatal")}
+              tone="fuchsia"
+            />
+            <FilterChip
+              active={severityFilter === "error"}
+              label={`Errors (${findings.filter((f) => f.severity === "error").length})`}
+              onClick={() => setSeverityFilter("error")}
+              tone="red"
+            />
+            <FilterChip
+              active={severityFilter === "warn"}
+              label={`Warn (${findings.filter((f) => f.severity === "warn").length})`}
+              onClick={() => setSeverityFilter("warn")}
+              tone="amber"
+            />
+            <FilterChip
+              active={severityFilter === "info"}
+              label={`Info (${findings.filter((f) => f.severity === "info").length})`}
+              onClick={() => setSeverityFilter("info")}
+              tone="sky"
+            />
+            <FilterChip
+              active={severityFilter === "pass"}
+              label={`Pass (${findings.filter((f) => f.severity === "pass").length})`}
+              onClick={() => setSeverityFilter("pass")}
+              tone="emerald"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            {visibleFindings.length === 0 ? (
+              <p className="py-4 text-center font-mono text-xs text-zinc-600">
+                No findings at this severity
+              </p>
+            ) : (
+              visibleFindings.map((f, i) => <FindingRow key={i} finding={f} />)
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FilterChip({
+  active,
+  label,
+  onClick,
+  tone,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+  tone?: "red" | "amber" | "emerald" | "sky" | "fuchsia";
+}) {
+  const toneText =
+    tone === "red"
+      ? "text-red-400"
+      : tone === "amber"
+        ? "text-amber-400"
+        : tone === "emerald"
+          ? "text-emerald-400"
+          : tone === "sky"
+            ? "text-sky-400"
+            : tone === "fuchsia"
+              ? "text-fuchsia-400"
+              : "text-zinc-300";
+
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-md px-2.5 py-1 text-[10px] font-mono transition ${
+        active ? `bg-zinc-800 ${toneText}` : "text-zinc-500 hover:text-zinc-300"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function FindingRow({ finding }: { finding: LintFinding }) {
+  return (
+    <div className={`rounded border px-3 py-2 ${severityClass(finding.severity)}`}>
+      <div className="flex items-start gap-2">
+        <span className="mt-0.5">{severityIcon(finding.severity)}</span>
+        <div className="flex-1 min-w-0">
+          <p className="font-mono text-[11px] text-zinc-300">{finding.rule}</p>
+          <p className="mt-0.5 text-xs text-zinc-400">{finding.description}</p>
+          {finding.details && (
+            <p className="mt-1 font-mono text-[10px] text-zinc-500">{finding.details}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MetaCard({
+  icon,
+  label,
+  value,
+  tone = "zinc",
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  tone?: "zinc" | "emerald" | "red";
+}) {
+  const toneClass =
+    tone === "emerald"
+      ? "text-emerald-400"
+      : tone === "red"
+        ? "text-red-400"
+        : "text-zinc-200";
+
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 px-3 py-2.5">
+      <div className="flex items-center gap-1.5 text-zinc-500">
+        {icon}
+        <p className="font-mono text-[10px] uppercase tracking-widest">{label}</p>
+      </div>
+      <p className={`mt-1 truncate font-mono text-xs ${toneClass}`} title={value}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function SummaryPill({
+  count,
+  label,
+  tone,
+}: {
+  count: number;
+  label: string;
+  tone: "emerald" | "sky" | "amber" | "red" | "fuchsia";
+}) {
+  const bg = {
+    emerald: "bg-emerald-500/10",
+    sky: "bg-sky-500/10",
+    amber: "bg-amber-500/10",
+    red: "bg-red-500/10",
+    fuchsia: "bg-fuchsia-500/10",
+  }[tone];
+  const text = {
+    emerald: "text-emerald-400",
+    sky: "text-sky-400",
+    amber: "text-amber-400",
+    red: "text-red-400",
+    fuchsia: "text-fuchsia-400",
+  }[tone];
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className={`rounded-md ${bg} px-2.5 py-1 font-mono text-xl font-semibold ${text}`}>
+        {count}
+      </span>
+      <span className="font-mono text-xs text-zinc-400">{label}</span>
+    </div>
+  );
+}
+
+export default function ScanResultDetail({ scan }: { scan: FinishedScan }) {
+  const lints = getLintsForScan(scan.id);
+
+  return (
+    <div className="flex flex-col gap-6 p-8">
+      <nav className="flex items-center gap-2 font-mono text-xs">
+        <Link
+          href="/main/results"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-1.5 text-zinc-400 transition hover:border-zinc-700 hover:text-zinc-100"
+        >
+          <ArrowLeft size={12} />
+          Back
+        </Link>
+        <span className="text-zinc-700">/</span>
+        <Link href="/main/results" className="text-zinc-500 transition hover:text-zinc-300">
+          Results
+        </Link>
+        <span className="text-zinc-700">/</span>
+        <span className="truncate text-zinc-300">{scan.name}</span>
+      </nav>
+
+      <header className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate font-mono text-2xl font-semibold text-zinc-100">
+              {scan.name}
+            </h1>
+            <p className="mt-1 font-mono text-[10px] text-zinc-600">{scan.id}</p>
+          </div>
+          <div>
+            {scan.status === "completed" ? (
+              <span className="inline-flex items-center gap-1.5 rounded px-3 py-1 text-xs font-mono font-medium bg-emerald-500/10 text-emerald-400">
+                <CheckCircle2 size={12} /> COMPLETED
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded px-3 py-1 text-xs font-mono font-medium bg-red-500/10 text-red-400">
+                <XCircle size={12} /> FAILED
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <MetaCard
+            icon={<Calendar size={12} />}
+            label="Scanned"
+            value={new Date(scan.scannedAt).toLocaleString()}
+          />
+          <MetaCard
+            icon={<TargetIcon size={12} />}
+            label="Targets"
+            value={String(scan.targetCount)}
+          />
+          <MetaCard
+            icon={<Shield size={12} />}
+            label="Certificates Linted"
+            value={String(lints.length)}
+          />
+          <MetaCard
+            icon={<FileCode size={12} />}
+            label="Status"
+            value={scan.status.toUpperCase()}
+            tone={scan.status === "completed" ? "emerald" : "red"}
+          />
+        </div>
+      </header>
+
+      <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5">
+        <p className="mb-4 font-mono text-[10px] uppercase tracking-widest text-zinc-500">
+          Result Summary
+        </p>
+        <div className="flex flex-wrap gap-5">
+          <SummaryPill count={scan.lintsPass} label="Pass" tone="emerald" />
+          <SummaryPill count={scan.lintsInfo} label="Info" tone="sky" />
+          <SummaryPill count={scan.lintsWarn} label="Warn" tone="amber" />
+          <SummaryPill count={scan.lintsFail} label="Fail" tone="red" />
+          <SummaryPill count={scan.lintsFatal} label="Fatal" tone="fuchsia" />
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-mono font-semibold uppercase tracking-widest text-zinc-100">
+              Lint Results
+            </h2>
+            <p className="mt-0.5 text-xs text-zinc-500">
+              {lints.length} certificate{lints.length !== 1 ? "s" : ""} · click to expand findings
+            </p>
+          </div>
+        </div>
+
+        {lints.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-zinc-800 px-4 py-12 text-center">
+            <p className="font-mono text-xs text-zinc-600">No lint data available for this scan</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {lints.map((lint) => (
+              <LintCard key={lint.id} lint={lint} />
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
