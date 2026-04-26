@@ -43,6 +43,7 @@ export interface Report {
   certs: number;
   status: ComplianceStatus;
   format: string;
+  pdf_status: "Ready" | "Generating" | "Pending"
 }
 
 export interface PolicyProfile {

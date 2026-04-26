@@ -5,7 +5,7 @@ export const ROUTES = {
   SCAN: "/scan",
   RESULTS: "/results",
   REPORTS: "/reports",
-  CONFIGURATION: "/configuration",
+  // CONFIGURATION: "/configuration",
   MONITORING: "/monitoring",
 } as const;
 
@@ -14,7 +14,7 @@ export const PAGE_TITLES: Record<string, string> = {
   [ROUTES.SCAN]: "Scan",
   [ROUTES.RESULTS]: "Results",
   [ROUTES.REPORTS]: "Reports",
-  [ROUTES.CONFIGURATION]: "Configuration",
+  // [ROUTES.CONFIGURATION]: "Configuration",
   [ROUTES.MONITORING]: "Monitoring",
 };
 
@@ -40,6 +40,6 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "scan", label: "Scan", href: ROUTES.SCAN, icon: Search },
   { id: "results", label: "Results", href: ROUTES.RESULTS, icon: FileText },
   { id: "reports", label: "Reports", href: ROUTES.REPORTS, icon: FileBarChart },
-  { id: "config", label: "Configuration", href: ROUTES.CONFIGURATION, icon: Settings },
+  // { id: "config", label: "Configuration", href: ROUTES.CONFIGURATION, icon: Settings },
   { id: "monitoring", label: "Monitoring", href: ROUTES.MONITORING, icon: Activity },
 ];

@@ -16,7 +16,11 @@ export async function getResults(scanId: string) {
 export async function getReports() {
   const res = await fetch(`${REPORT_API}/reports/reports`)
   if (!res.ok) throw new Error("Failed to fetch reports")
-  return res.json();
+  const data = await res.json()
+  return data.map((r: any) => ({
+    ...r,
+    pdf_status: r.certs > 0 ? "ready" : "pending"
+  }))
 }
 
 export async function downloadReport(scanId: string, filename: string) {
@@ -35,6 +39,20 @@ export async function downloadReport(scanId: string, filename: string) {
   a.download = `${filename}.pdf`
   a.click()
   window.URL.revokeObjectURL(url)
+}
+
+export async function viewReport(scanId: string) {
+  const res = await fetch(`${REPORT_API}/reports/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ scan_id: scanId }),
+  })
+
+  if (!res.ok) throw new Error("Failed to generate report")
+
+  const blob = await res.blob()
+  const url = window.URL.createObjectURL(blob)
+  window.open(url, "_blank")
 }
 
 export async function getPolicyProfiles() {
