@@ -27,8 +27,12 @@ export async function generateReport(scanId: string): Promise<void> {
   })
 }
 
-export function getReportUrl(scanId: string): string {
+export function getReportViewUrl(scanId: string): string {
   return `${REPORT_API}/reports/serve/${scanId}`
+}
+
+export function getReportDownloadUrl(scanId: string): string {
+  return `${REPORT_API}/reports/download/${scanId}`
 }
 
 export async function getPolicyProfiles() {
