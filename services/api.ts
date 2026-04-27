@@ -15,45 +15,25 @@ export async function getResults(scanId: string) {
 }
 
 export async function getReports() {
-  const res = await fetch(`${REPORT_API}/reports/reports`)
+  const res = await fetch(`${REPORT_API}/reports`)
   if (!res.ok) throw new Error("Failed to fetch reports")
-  const data = await res.json()
-  return data.map((r: any) => ({
-    ...r,
-    pdf_status: r.certs > 0 ? "ready" : "pending"
-  }))
+  return res.json()
 }
 
-export async function downloadReport(scanId: string, filename: string) {
-  const res = await fetch(`${REPORT_API}/reports/generate`, {
+export async function generateReport(scanId: string): Promise<void> {
+  await fetch(`${REPORT_API}/reports/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ scan_id: scanId }),
   })
-
-  if (!res.ok) throw new Error("Failed to generate report")
-
-  const blob = await res.blob()
-  const url = window.URL.createObjectURL(blob)
-  const a = document.createElement("a")
-  a.href = url
-  a.download = `${filename}.pdf`
-  a.click()
-  window.URL.revokeObjectURL(url)
 }
 
-export async function viewReport(scanId: string) {
-  const res = await fetch(`${REPORT_API}/reports/generate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ scan_id: scanId }),
-  })
+export function getReportViewUrl(scanId: string): string {
+  return `${REPORT_API}/reports/serve/${scanId}`
+}
 
-  if (!res.ok) throw new Error("Failed to generate report")
-
-  const blob = await res.blob()
-  const url = window.URL.createObjectURL(blob)
-  window.open(url, "_blank")
+export function getReportDownloadUrl(scanId: string): string {
+  return `${REPORT_API}/reports/download/${scanId}`
 }
 
 export async function getPolicyProfiles() {
