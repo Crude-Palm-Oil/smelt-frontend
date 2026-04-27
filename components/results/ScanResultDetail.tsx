@@ -22,7 +22,6 @@ import {
   type Lint,
   type LintFinding,
   type LintSeverity,
-  getLintsForScan,
 } from "@/lib/mock-results-data";
 
 function severityIcon(severity: LintSeverity) {
@@ -61,12 +60,22 @@ function severityClass(severity: LintSeverity) {
 
 function LintCard({ lint }: { lint: Lint }) {
   const [expanded, setExpanded] = useState(false);
-  const [severityFilter, setSeverityFilter] = useState<LintSeverity | "all">("all");
+  // Default to actionable findings (warn/error/fatal) — there are typically
+  // hundreds of NA/pass entries that drown out what the user actually needs
+  // to look at. Per usability feedback: "UI/UX more simplified".
+  const [severityFilter, setSeverityFilter] = useState<LintSeverity | "all" | "issues">(
+    "issues",
+  );
 
   const { summary, findings } = lint.lintResults;
-  const visibleFindings = findings.filter(
-    (f) => severityFilter === "all" || f.severity === severityFilter,
-  );
+  const issueCount = summary.fatal + summary.error + summary.warn;
+  const visibleFindings = findings.filter((f) => {
+    if (severityFilter === "all") return true;
+    if (severityFilter === "issues") {
+      return f.severity === "warn" || f.severity === "error" || f.severity === "fatal";
+    }
+    return f.severity === severityFilter;
+  });
 
   const statusBadge = (() => {
     switch (lint.status) {
@@ -158,37 +167,43 @@ function LintCard({ lint }: { lint: Lint }) {
 
           <div className="mb-3 flex flex-wrap items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-900/50 p-1">
             <FilterChip
+              active={severityFilter === "issues"}
+              label={`Issues (${issueCount})`}
+              onClick={() => setSeverityFilter("issues")}
+              tone="amber"
+            />
+            <FilterChip
               active={severityFilter === "all"}
               label={`All (${findings.length})`}
               onClick={() => setSeverityFilter("all")}
             />
             <FilterChip
               active={severityFilter === "fatal"}
-              label={`Fatal (${findings.filter((f) => f.severity === "fatal").length})`}
+              label={`Fatal (${summary.fatal})`}
               onClick={() => setSeverityFilter("fatal")}
               tone="fuchsia"
             />
             <FilterChip
               active={severityFilter === "error"}
-              label={`Errors (${findings.filter((f) => f.severity === "error").length})`}
+              label={`Errors (${summary.error})`}
               onClick={() => setSeverityFilter("error")}
               tone="red"
             />
             <FilterChip
               active={severityFilter === "warn"}
-              label={`Warn (${findings.filter((f) => f.severity === "warn").length})`}
+              label={`Warn (${summary.warn})`}
               onClick={() => setSeverityFilter("warn")}
               tone="amber"
             />
             <FilterChip
               active={severityFilter === "info"}
-              label={`Info (${findings.filter((f) => f.severity === "info").length})`}
+              label={`Info (${summary.info})`}
               onClick={() => setSeverityFilter("info")}
               tone="sky"
             />
             <FilterChip
               active={severityFilter === "pass"}
-              label={`Pass (${findings.filter((f) => f.severity === "pass").length})`}
+              label={`Pass (${summary.pass})`}
               onClick={() => setSeverityFilter("pass")}
               tone="emerald"
             />
@@ -327,8 +342,39 @@ function SummaryPill({
   );
 }
 
-export default function ScanResultDetail({ scan }: { scan: FinishedScan }) {
-  const lints = getLintsForScan(scan.id);
+export default function ScanResultDetail({
+  scan,
+  lints,
+}: {
+  scan: FinishedScan;
+  lints: Lint[];
+}) {
+  const failingCertCount = lints.filter(
+    (l) => l.status === "fatal" || l.status === "fail",
+  ).length;
+  const showFailureCallout = scan.status === "failed" && failingCertCount > 0;
+
+  // Collect the most common error/fatal rules across all certs in this scan
+  // so the callout can tell the user *why* it failed without making them
+  // expand every lint card.
+  const topFailureReasons = (() => {
+    const counts = new Map<string, { count: number; description: string }>();
+    for (const lint of lints) {
+      for (const finding of lint.lintResults.findings) {
+        if (finding.severity !== "error" && finding.severity !== "fatal") continue;
+        const existing = counts.get(finding.rule);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          counts.set(finding.rule, { count: 1, description: finding.description });
+        }
+      }
+    }
+    return Array.from(counts.entries())
+      .map(([rule, { count, description }]) => ({ rule, count, description }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3);
+  })();
 
   return (
     <div className="flex flex-col gap-6 p-8">
@@ -393,6 +439,47 @@ export default function ScanResultDetail({ scan }: { scan: FinishedScan }) {
           />
         </div>
       </header>
+
+      {showFailureCallout && (
+        <section className="rounded-xl border border-red-500/30 bg-red-500/5 p-5">
+          <div className="flex items-start gap-3">
+            <AlertOctagon size={18} className="mt-0.5 shrink-0 text-red-400" />
+            <div className="min-w-0 flex-1">
+              <p className="font-mono text-xs font-semibold uppercase tracking-widest text-red-400">
+                Why this scan failed
+              </p>
+              <p className="mt-1 text-sm text-zinc-300">
+                {failingCertCount} certificate{failingCertCount !== 1 ? "s" : ""}{" "}
+                produced error or fatal findings.
+                {topFailureReasons.length > 0 &&
+                  " The most common reasons across this scan:"}
+              </p>
+              {topFailureReasons.length > 0 && (
+                <ul className="mt-3 space-y-2">
+                  {topFailureReasons.map((reason) => (
+                    <li
+                      key={reason.rule}
+                      className="rounded border border-red-500/20 bg-black/30 px-3 py-2"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="truncate font-mono text-[11px] text-red-300">
+                          {reason.rule}
+                        </p>
+                        <span className="shrink-0 font-mono text-[10px] text-red-400">
+                          ×{reason.count}
+                        </span>
+                      </div>
+                      {reason.description && (
+                        <p className="mt-1 text-xs text-zinc-400">{reason.description}</p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5">
         <p className="mb-4 font-mono text-[10px] uppercase tracking-widest text-zinc-500">
