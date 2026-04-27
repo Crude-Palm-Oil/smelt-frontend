@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { login } from "@/services/api";
 
 export function LoginForm() {
   const router = useRouter();
@@ -17,18 +18,15 @@ export function LoginForm() {
     e.preventDefault();
     setError("");
     setLoading(true);
-
+  
     try {
-      // call API
-      await new Promise((res) => setTimeout(res, 1000));
-
-      if (email === "admin@smelt.com" && password === "password") {
-        router.push("/main/dashboard");
-      } else if (email !== "admin@smelt.com"){
-        throw new Error("Email not registered");
-      } else {
-        throw new Error("Wrong Password")
-      }
+      const data = await login({ email, password });
+  
+      localStorage.setItem("token", data.access_token);
+  
+      localStorage.setItem("user", JSON.stringify(data.user));
+  
+      router.push("/main/dashboard");
     } catch (err: any) {
       setError(err.message);
     } finally {
