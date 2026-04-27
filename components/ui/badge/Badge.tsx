@@ -1,31 +1,25 @@
-import clsx from "clsx";
-
-type BadgeVariant = "PASS" | "FAIL" | "WARN" | "SUCCESS" | "NOTICE" | "WARNING" | "ERROR";
+type BadgeVariant = "PASS" | "INFO" | "WARN" | "ERROR" | "FAIL" | "FATAL";
 
 type BadgeProps = {
-  children: React.ReactNode;
   variant: BadgeVariant;
+  children: React.ReactNode;
 };
 
-const variantClasses: Record<BadgeVariant, string> = {
-  PASS: "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
-  FAIL: "border border-red-500/30 bg-red-500/10 text-red-400",
-  WARN: "border border-amber-500/30 bg-amber-500/10 text-amber-400",
-  SUCCESS: "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400",
-  NOTICE: "border border-blue-500/30 bg-blue-500/10 text-blue-400",
-  WARNING: "border border-amber-500/30 bg-amber-500/10 text-amber-400",
-  ERROR: "border border-red-500/30 bg-red-500/10 text-red-400",
+const variants: Record<BadgeVariant, string> = {
+  PASS: "border-emerald-500/40 bg-emerald-500/10 text-emerald-400",
+  INFO: "border-sky-500/40 bg-sky-500/10 text-sky-400",
+  WARN: "border-amber-500/40 bg-amber-500/10 text-amber-400",
+  ERROR: "border-red-500/40 bg-red-500/10 text-red-400",
+  FAIL: "border-red-500/40 bg-red-500/10 text-red-400",
+  FATAL: "border-fuchsia-500/40 bg-fuchsia-500/10 text-fuchsia-400",
 };
 
-export default function Badge({ children, variant }: BadgeProps) {
+export default function Badge({ variant, children }: BadgeProps) {
   return (
     <span
-    className={clsx(
-      "inline-flex rounded-md px-3 py-1 text-xs font-medium tracking-wide",
-      variantClasses[variant]
-    )}
+      className={`inline-flex rounded-md border px-2 py-1 text-xs font-medium ${variants[variant]}`}
     >
-    {children}
+      {children}
     </span>
   );
 }
