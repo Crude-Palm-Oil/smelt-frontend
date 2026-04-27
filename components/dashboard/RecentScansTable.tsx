@@ -1,8 +1,8 @@
 import Link from "next/link";
 import Badge from "@/components/ui/badge/Badge";
 import { finishedScans } from "@/lib/mock-results-data"; 
-// sesuaikan path ini dengan lokasi file data kamu
 
+// TODO: Change Fail to Error Due to LINTS
 function getScanStatus(scan: {
   lintsWarn: number;
   lintsFail: number;
