@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { Globe, Upload, Search, Plus, Server } from "lucide-react";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_SCAN_URL;
+
 type ScanTab = "domain-ip" | "dns-records" | "upload-certificate";
 
 type RecentScan = {
@@ -11,6 +13,7 @@ type RecentScan = {
   type: "domain" | "dns" | "upload";
   time: string;
 };
+
 
 const recentScans: RecentScan[] = [
   { id: 1, name: "api.example.com", type: "domain", time: "2 hours ago" },
@@ -76,6 +79,10 @@ export default function ScanPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
 
+  const [targetsInput, setTargetsInput] = useState("");
+
+  const [showSuccess, setShowSuccess] = useState(false);
+
   const removeFile = (index: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
@@ -100,7 +107,7 @@ export default function ScanPage() {
 
     try {
       const res = await fetch(
-        "http://localhost:8000/integration/upload-and-scan",
+        `${API_BASE_URL}/integration/upload-and-scan`,
         {
           method: "POST",
           body: formData,
@@ -111,6 +118,87 @@ export default function ScanPage() {
       setResult(data);
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const parseTargets = () => {
+    const lines = targetsInput
+      .split(/[\n,]+/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+
+    const targets: any[] = [];
+    const errors: string[] = [];
+
+    lines.forEach((line, index) => {
+      const [host, portStr] = line.split(":");
+
+      if (!host) {
+        errors.push(`Line ${index + 1}: empty host`);
+        return;
+      }
+
+      const port = portStr ? Number(portStr) : 443;
+
+      if (isNaN(port) || port <= 0 || port > 65535) {
+        errors.push(`Line ${index + 1}: invalid port`);
+        return;
+      }
+
+      const isIPv4 = /^(\d{1,3}\.){3}\d{1,3}$/.test(host);
+
+      if (isIPv4) {
+        targets.push({ ip_address: host, port });
+      } else {
+        targets.push({ hostname: host, port });
+      }
+    });
+
+    return { targets, errors };
+  };
+
+  const handleTargetScan = async () => {
+    const { targets, errors } = parseTargets();
+
+    if (errors.length > 0) {
+      alert(errors.join("\n"));
+      return;
+    }
+
+    if (targets.length === 0) {
+      alert("No valid targets");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/integration/scan-targets`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            type: "target",
+            targets,
+          }),
+        },
+      );
+
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+
+      const data = await res.json();
+      setResult(data);
+      setShowSuccess(true);
+    } catch (err) {
+      console.error(err);
+      alert("Scan failed");
     } finally {
       setLoading(false);
     }
@@ -183,7 +271,9 @@ export default function ScanPage() {
                       </label>
                       <textarea
                         rows={4}
-                        placeholder="example.com, 192.168.1.1 (one per line)"
+                        value={targetsInput}
+                        onChange={(e) => setTargetsInput(e.target.value)}
+                        placeholder="example.com:443\n192.168.1.1:443"
                         className="w-full resize-none rounded-md border border-white/10 bg-black px-4 py-3 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-emerald-400/50"
                       />
                       <p className="mt-3 text-sm leading-6 text-zinc-500">
@@ -205,9 +295,13 @@ export default function ScanPage() {
                     </div>
 
                     <div className="flex flex-wrap gap-3">
-                      <button className="inline-flex items-center gap-2 rounded-md bg-emerald-400 px-5 py-3 text-sm font-medium text-black transition hover:bg-emerald-300">
+                      <button
+                        onClick={handleTargetScan}
+                        disabled={loading}
+                        className="inline-flex items-center gap-2 rounded-md bg-emerald-400 px-5 py-3 text-sm font-medium text-black transition hover:bg-emerald-300 disabled:opacity-50"
+                      >
                         <Search className="h-4 w-4" />
-                        Start Scan
+                        {loading ? "Scanning..." : "Start Scan"}
                       </button>
 
                       <button className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-transparent px-5 py-3 text-sm text-zinc-300 transition hover:border-white/20 hover:bg-white/5">
@@ -302,12 +396,6 @@ export default function ScanPage() {
                       <Search className="h-4 w-4" />
                       {loading ? "Processing..." : "Analyse Certificates"}
                     </button>
-
-                    {result && (
-                      <pre className="mt-4 text-xs bg-black p-4 rounded border border-white/10 overflow-auto">
-                        {JSON.stringify(result, null, 2)}
-                      </pre>
-                    )}
                   </div>
                 )}
               </Card>
