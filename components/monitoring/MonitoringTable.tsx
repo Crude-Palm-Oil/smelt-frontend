@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { Search } from "lucide-react";
-import { allScans, type ScanStatus } from "@/lib/mock-monitoring-data";
+import {
+  type ScanRecord,
+  type ScanStatus,
+} from "@/lib/mock-monitoring-data";
 import { timeAgo } from "@/lib/utils";
 import ScanDetailModal, { type ScanDetail } from "./ScanDetailModal";
 
@@ -14,12 +17,16 @@ function statusBadge(status: ScanStatus) {
 
 type Filter = "all" | "pass" | "fail";
 
-export default function MonitoringTable() {
+export default function MonitoringTable({
+  scans,
+}: {
+  scans: ScanRecord[];
+}) {
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<ScanDetail | null>(null);
 
-  const filtered = allScans.filter((s) => {
+  const filtered = scans.filter((s) => {
     if (filter !== "all" && s.status !== filter) return false;
     if (query && !s.name.toLowerCase().includes(query.toLowerCase())) return false;
     return true;

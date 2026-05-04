@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import ScanResultDetail from "@/components/results/ScanResultDetail";
-import { finishedScans } from "@/lib/mock-results-data";
+import { getFinishedScans, getLintsForScan } from "@/services/api";
+
+export const dynamic = "force-dynamic";
 
 export default async function ScanResultPage({
   params,
@@ -8,9 +10,14 @@ export default async function ScanResultPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const scan = finishedScans.find((s) => s.id === id);
 
+  const [scans, lints] = await Promise.all([
+    getFinishedScans(),
+    getLintsForScan(id),
+  ]);
+
+  const scan = scans.find((s) => s.id === id);
   if (!scan) notFound();
 
-  return <ScanResultDetail scan={scan} />;
+  return <ScanResultDetail scan={scan} lints={lints} />;
 }
