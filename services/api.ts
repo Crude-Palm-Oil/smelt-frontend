@@ -1,3 +1,5 @@
+"use server"
+
 import type {
   FinishedScan,
   Lint,
@@ -10,7 +12,7 @@ import type {
 const ANALYSIS_API = process.env.NEXT_PUBLIC_ANALYSIS_API_URL ?? "http://localhost:8080";
 const REPORT_API = process.env.NEXT_PUBLIC_REPORT_API_URL ?? "http://localhost:8001";
 const CONFIG_API = process.env.NEXT_PUBLIC_CONFIG_API_URL ?? "http://localhost:8002";
-const BASE_URL = "http://localhost:8000"
+const BASE_URL = process.env.NEXT_PUBLIC_API_SCAN_URL ?? "http://localhost:8000";
 
 // --- Results feature ----------------------------------------------------
 
@@ -112,13 +114,13 @@ function adaptLint(row: RawLintRow): Lint {
 }
 
 export async function getFinishedScans(): Promise<FinishedScan[]> {
-  const res = await fetch(`${REPORT_API}/results/scans`, { cache: "no-store" });
+  const res = await fetch(`${BASE_URL}/results/scans`, { cache: "no-store" });
   if (!res.ok) throw new Error(`Failed to fetch finished scans (${res.status})`);
   return res.json();
 }
 
 export async function getLintsForScan(scanId: string): Promise<Lint[]> {
-  const res = await fetch(`${REPORT_API}/results/scans/${scanId}/lints`, {
+  const res = await fetch(`${BASE_URL}/results/scans/${scanId}/lints`, {
     cache: "no-store",
   });
   if (res.status === 404) return [];
@@ -145,14 +147,6 @@ export async function generateReport(scanId: string): Promise<void> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ scan_id: scanId }),
   })
-}
-
-export function getReportViewUrl(scanId: string): string {
-  return `${REPORT_API}/reports/serve/${scanId}`
-}
-
-export function getReportDownloadUrl(scanId: string): string {
-  return `${REPORT_API}/reports/download/${scanId}`
 }
 
 export async function getPolicyProfiles() {

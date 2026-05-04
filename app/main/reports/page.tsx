@@ -3,8 +3,18 @@
 import { useState, useEffect } from "react"
 import { ReportsTable } from "@/components/reports/ReportsTable"
 import { Report } from "@/types"
-import { getReports, generateReport, getReportViewUrl, getReportDownloadUrl  } from "@/services/api"
+import { getReports, generateReport } from "@/services/api"
 import { Filter, Download } from "lucide-react"
+
+const REPORT_API = "/api/reports";
+
+export function getReportViewUrl(scanId: string): string {
+  return `${REPORT_API}/serve/${scanId}`
+}
+
+export function getReportDownloadUrl(scanId: string): string {
+  return `${REPORT_API}/download/${scanId}`
+}
 
 export default function ReportsPage() {
   const [reports, setReports] = useState<Report[]>([])
