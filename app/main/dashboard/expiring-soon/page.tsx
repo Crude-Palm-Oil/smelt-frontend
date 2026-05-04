@@ -1,43 +1,46 @@
 import Link from "next/link";
 import { ArrowLeft, ClockAlert } from "lucide-react";
 
-const expiringCertificates = [
-  {
-    domain: "api.legacy-service.internal",
-    issuer: "DigiCert TLS RSA SHA256 2020 CA1",
-    expiryDate: "2026-04-25",
-    daysLeft: 6,
-    status: "Critical",
-  },
-  {
-    domain: "mail.corp.internal",
-    issuer: "GlobalSign GCC R3 DV TLS CA 2020",
-    expiryDate: "2026-04-28",
-    daysLeft: 9,
-    status: "Critical",
-  },
-  {
-    domain: "vendor-certs.platform.io",
-    issuer: "Sectigo RSA Domain Validation Secure Server CA",
-    expiryDate: "2026-05-02",
-    daysLeft: 13,
-    status: "Warning",
-  },
-  {
-    domain: "staging.smelt.dev",
-    issuer: "Let’s Encrypt R3",
-    expiryDate: "2026-05-07",
-    daysLeft: 18,
-    status: "Warning",
-  },
-  {
-    domain: "auth.service.net",
-    issuer: "Amazon RSA 2048 M02",
-    expiryDate: "2026-05-14",
-    daysLeft: 25,
-    status: "Notice",
-  },
-];
+type ExpiringFinding = {
+  scan_id: string;
+  scan_name: string;
+  target_id: string | null;
+  cert_id: string | null;
+  name: string;
+  status: string;
+  description: string;
+  citation: string | null;
+  source: string | null;
+};
+
+async function getExpiringSoon(): Promise<ExpiringFinding[]> {
+  const apiBaseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL;
+
+  const res = await fetch(`${apiBaseUrl}/api/dashboard/expiring-soon`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch expiring soon findings");
+  }
+
+  return res.json();
+}
+
+function getStatusLabel(status: string) {
+  const normalizedStatus = status.toLowerCase();
+
+  if (normalizedStatus === "fatal" || normalizedStatus === "error") {
+    return "Critical";
+  }
+
+  if (normalizedStatus === "warn" || normalizedStatus === "warning") {
+    return "Warning";
+  }
+
+  return "Notice";
+}
 
 function getStatusClass(status: string) {
   if (status === "Critical") {
@@ -51,7 +54,30 @@ function getStatusClass(status: string) {
   return "border-zinc-600 bg-zinc-800 text-zinc-300";
 }
 
-export default function ExpiringSoonPage() {
+function formatRuleName(name: string) {
+  return name
+    .replace(/^e_/, "")
+    .replace(/^w_/, "")
+    .replace(/^n_/, "")
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+export default async function ExpiringSoonPage() {
+  const expiringCertificates = await getExpiringSoon();
+
+  const totalExpiring = expiringCertificates.length;
+
+  const criticalWindow = expiringCertificates.filter((cert) => {
+    const statusLabel = getStatusLabel(cert.status);
+    return statusLabel === "Critical";
+  }).length;
+
+  const affectedScans = new Set(
+    expiringCertificates.map((cert) => cert.scan_id)
+  ).size;
+
   return (
     <main className="min-h-screen bg-[#080809] px-8 py-6 text-zinc-100">
       <div className="mb-8">
@@ -72,7 +98,7 @@ export default function ExpiringSoonPage() {
               Expiring Soon
             </h1>
             <p className="mt-1 text-sm text-zinc-500">
-              Certificates that will expire within the next 30 days.
+              Certificate validity findings that require renewal or expiry review.
             </p>
           </div>
         </div>
@@ -83,24 +109,34 @@ export default function ExpiringSoonPage() {
           <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">
             Total Expiring
           </p>
-          <p className="mt-4 text-3xl font-semibold text-red-400">10</p>
-          <p className="mt-2 text-xs text-zinc-500">Within 30 days</p>
+          <p className="mt-4 text-3xl font-semibold text-red-400">
+            {totalExpiring}
+          </p>
+          <p className="mt-2 text-xs text-zinc-500">
+            Validity-related findings
+          </p>
         </div>
 
         <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-6">
           <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">
             Critical Window
           </p>
-          <p className="mt-4 text-3xl font-semibold text-yellow-400">2</p>
-          <p className="mt-2 text-xs text-zinc-500">Expiring in 10 days</p>
+          <p className="mt-4 text-3xl font-semibold text-yellow-400">
+            {criticalWindow}
+          </p>
+          <p className="mt-2 text-xs text-zinc-500">
+            Critical expiry findings
+          </p>
         </div>
 
         <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-6">
           <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">
-            Action Needed
+            Affected Scans
           </p>
-          <p className="mt-4 text-3xl font-semibold text-emerald-400">5</p>
-          <p className="mt-2 text-xs text-zinc-500">Renewal review required</p>
+          <p className="mt-4 text-3xl font-semibold text-emerald-400">
+            {affectedScans}
+          </p>
+          <p className="mt-2 text-xs text-zinc-500">Scans requiring review</p>
         </div>
       </section>
 
@@ -110,7 +146,7 @@ export default function ExpiringSoonPage() {
             Expiring Certificates
           </h2>
           <p className="mt-2 text-xs text-zinc-500">
-            Prioritise certificates with the shortest remaining validity period.
+            Prioritise validity-related findings from recent scan results.
           </p>
         </div>
 
@@ -118,39 +154,78 @@ export default function ExpiringSoonPage() {
           <table className="w-full text-left text-sm">
             <thead className="border-b border-zinc-800 bg-zinc-900/40 text-xs uppercase tracking-[0.25em] text-zinc-500">
               <tr>
-                <th className="px-6 py-4 font-medium">Domain</th>
-                <th className="px-6 py-4 font-medium">Issuer</th>
-                <th className="px-6 py-4 font-medium">Expiry Date</th>
-                <th className="px-6 py-4 font-medium">Days Left</th>
+                <th className="px-6 py-4 font-medium">Rule</th>
+                <th className="px-6 py-4 font-medium">Scan</th>
+                <th className="px-6 py-4 font-medium">Certificate</th>
+                <th className="px-6 py-4 font-medium">Source</th>
                 <th className="px-6 py-4 font-medium">Status</th>
               </tr>
             </thead>
 
             <tbody>
-              {expiringCertificates.map((cert) => (
-                <tr
-                  key={cert.domain}
-                  className="border-b border-zinc-900 last:border-0"
-                >
-                  <td className="px-6 py-5 text-cyan-400">{cert.domain}</td>
-                  <td className="px-6 py-5 text-zinc-400">{cert.issuer}</td>
-                  <td className="px-6 py-5 text-zinc-400">
-                    {cert.expiryDate}
-                  </td>
-                  <td className="px-6 py-5 text-zinc-300">
-                    {cert.daysLeft} days
-                  </td>
-                  <td className="px-6 py-5">
-                    <span
-                      className={`rounded-md border px-3 py-1 text-xs ${getStatusClass(
-                        cert.status
-                      )}`}
-                    >
-                      {cert.status}
-                    </span>
+              {expiringCertificates.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center">
+                    <p className="text-sm text-zinc-400">
+                      No expiring certificate findings found.
+                    </p>
+                    <p className="mt-2 text-xs text-zinc-600">
+                      Validity-related warnings will appear here after scan
+                      results are processed.
+                    </p>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                expiringCertificates.map((cert) => {
+                  const statusLabel = getStatusLabel(cert.status);
+
+                  return (
+                    <tr
+                      key={`${cert.scan_id}-${cert.target_id}-${cert.name}`}
+                      className="border-b border-zinc-900 last:border-0"
+                    >
+                      <td className="px-6 py-5">
+                        <p className="font-medium text-cyan-400">
+                          {formatRuleName(cert.name)}
+                        </p>
+                        <p className="mt-1 text-xs text-zinc-600">
+                          {cert.name}
+                        </p>
+                        <p className="mt-2 max-w-xl text-xs leading-5 text-zinc-500">
+                          {cert.description || "No description available."}
+                        </p>
+                      </td>
+
+                      <td className="px-6 py-5 text-zinc-400">
+                        {cert.scan_name || "Unnamed Scan"}
+                      </td>
+
+                      <td className="px-6 py-5">
+                        <p className="break-all text-zinc-300">
+                          {cert.cert_id || "N/A"}
+                        </p>
+                        <p className="mt-1 break-all text-xs text-zinc-600">
+                          Target: {cert.target_id || "N/A"}
+                        </p>
+                      </td>
+
+                      <td className="px-6 py-5 text-zinc-400">
+                        {cert.source || "N/A"}
+                      </td>
+
+                      <td className="px-6 py-5">
+                        <span
+                          className={`rounded-md border px-3 py-1 text-xs ${getStatusClass(
+                            statusLabel
+                          )}`}
+                        >
+                          {statusLabel}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

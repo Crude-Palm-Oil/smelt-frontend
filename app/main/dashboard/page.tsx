@@ -12,7 +12,7 @@ export default function Page() {
         <RecentScansTable />
         <div className="space-y-6">
           <AlertFeed />
-          {/* <ComplianceOverview /> */}
+          <ComplianceOverview />
         </div>
       </div>
     </div>
