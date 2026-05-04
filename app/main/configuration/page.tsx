@@ -1,12 +1,13 @@
-export default function configurationPage() {
+"use client";
+
+import { useState } from "react";
+import ConfigurationForm from "@/components/configuration/ConfigurationForm";"@/components/configuration/ConfigurationForm";
+
+export default function ConfigurationPage() {
   return (
-    <div>
-      <h1 className="text-sm font-mono text-neutral-300 uppercase tracking-wide">
-        configuration
-      </h1>
-      <p className="text-xs font-mono text-neutral-500 mt-2">
-        TODO: implement configuration page
-      </p>
+    <div className="p-6 space-y-6">
+      <h1 className="text-2xl font-semibold">Configuration</h1>
+      <ConfigurationForm />
     </div>
   );
 }
