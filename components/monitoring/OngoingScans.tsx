@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Terminal, CheckCircle2 } from "lucide-react";
-import { ongoingScans, type OngoingScan } from "@/lib/mock-monitoring-data";
+import { type OngoingScan } from "@/lib/mock-monitoring-data";
 import ScanDetailModal, { type ScanDetail } from "./ScanDetailModal";
 
 function formatElapsed(startedAtMs: number, now: number): string {
@@ -54,7 +54,11 @@ function ScanLine({
   );
 }
 
-export default function OngoingScans() {
+export default function OngoingScans({
+  scans,
+}: {
+  scans: OngoingScan[];
+}) {
   const [selected, setSelected] = useState<ScanDetail | null>(null);
   const [anchor, setAnchor] = useState<number | null>(null);
   const [now, setNow] = useState<number | null>(null);
@@ -63,12 +67,12 @@ export default function OngoingScans() {
     const mountTime = Date.now();
     setAnchor(mountTime);
     setNow(mountTime);
-    if (ongoingScans.length === 0) return;
+    if (scans.length === 0) return;
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [scans.length]);
 
-  if (ongoingScans.length === 0) {
+  if (scans.length === 0) {
     return (
       <section>
         <div className="mb-4 flex items-center gap-2">
@@ -112,7 +116,7 @@ export default function OngoingScans() {
               Ongoing Scans
             </h2>
             <p className="mt-0.5 text-xs text-zinc-500">
-              {ongoingScans.length} scan{ongoingScans.length !== 1 ? "s" : ""} in progress · live
+              {scans.length} scan{scans.length !== 1 ? "s" : ""} in progress · live
             </p>
           </div>
         </div>
@@ -136,7 +140,7 @@ export default function OngoingScans() {
         </div>
 
         <div className="max-h-[320px] overflow-y-auto">
-          {ongoingScans.map((scan) => (
+          {scans.map((scan) => (
             <ScanLine
               key={scan.id}
               scan={scan}

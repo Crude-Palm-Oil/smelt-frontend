@@ -2,14 +2,31 @@ import StatsBar from "@/components/monitoring/StatsBar";
 import OngoingScans from "@/components/monitoring/OngoingScans";
 import AlertHistoryTable from "@/components/monitoring/AlertHistoryTable";
 import MonitoringTable from "@/components/monitoring/MonitoringTable";
+import {
+  getOngoingScans,
+  getFailedScans,
+  getMonitoringHistory,
+} from "@/services/api";
 
-export default function MonitoringPage() {
+export const dynamic = "force-dynamic";
+
+export default async function MonitoringPage() {
+  const [ongoing, failed, history] = await Promise.all([
+    getOngoingScans(),
+    getFailedScans(),
+    getMonitoringHistory(),
+  ]);
+
   return (
     <div className="flex flex-col gap-8 p-8">
-      <StatsBar />
-      <OngoingScans />
-      <AlertHistoryTable />
-      <MonitoringTable />
+      <StatsBar
+        allScans={history}
+        ongoingScans={ongoing}
+        failedScans={failed}
+      />
+      <OngoingScans scans={ongoing} />
+      <AlertHistoryTable failedScans={failed} />
+      <MonitoringTable scans={history} />
     </div>
   );
 }

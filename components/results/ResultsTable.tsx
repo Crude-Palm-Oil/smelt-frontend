@@ -11,7 +11,7 @@ import {
   Info,
   ChevronRight,
 } from "lucide-react";
-import { finishedScans, type FinishedScan } from "@/lib/mock-results-data";
+import { type FinishedScan } from "@/lib/mock-results-data";
 import { timeAgo } from "@/lib/utils";
 
 type Filter = "all" | "clean" | "issues";
@@ -88,7 +88,7 @@ function LintBar({ scan }: { scan: FinishedScan }) {
   );
 }
 
-export default function ResultsTable() {
+export default function ResultsTable({ scans }: { scans: FinishedScan[] }) {
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
@@ -96,7 +96,7 @@ export default function ResultsTable() {
   const hasIssues = (s: FinishedScan) =>
     s.lintsFatal > 0 || s.lintsFail > 0 || s.lintsWarn > 0;
 
-  const filtered = finishedScans.filter((s) => {
+  const filtered = scans.filter((s) => {
     if (filter === "clean" && hasIssues(s)) return false;
     if (filter === "issues" && !hasIssues(s)) return false;
     if (query && !s.name.toLowerCase().includes(query.toLowerCase())) return false;
