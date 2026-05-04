@@ -29,7 +29,7 @@ export default function RecentScansTable() {
       (a, b) =>
         new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime(),
     )
-    .slice(0, 5);
+    .slice(0, 8);
 
   return (
     <section>
