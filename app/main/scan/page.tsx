@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Globe, Upload, Search, Plus, Server } from "lucide-react";
+import { apiFetch } from "@/lib/scans";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_SCAN_URL;
 
@@ -13,7 +14,6 @@ type RecentScan = {
   type: "domain" | "dns" | "upload";
   time: string;
 };
-
 
 const recentScans: RecentScan[] = [
   { id: 1, name: "api.example.com", type: "domain", time: "2 hours ago" },
@@ -106,13 +106,10 @@ export default function ScanPage() {
     });
 
     try {
-      const res = await fetch(
-        `${API_BASE_URL}/integration/upload-and-scan`,
-        {
-          method: "POST",
-          body: formData,
-        },
-      );
+      const res = await apiFetch("/integration/upload-and-scan", {
+        method: "POST",
+        body: formData,
+      });
 
       const data = await res.json();
       setResult(data);
@@ -175,19 +172,15 @@ export default function ScanPage() {
     setLoading(true);
 
     try {
-      const res = await fetch(
-        `${API_BASE_URL}/integration/scan-targets`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            type: "target",
-            targets,
-          }),
+      const res = await apiFetch("/integration/scan-targets", {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+
+        body: JSON.stringify({ type: "target", targets }),
+      });
 
       if (!res.ok) {
         throw new Error(await res.text());
