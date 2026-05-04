@@ -37,7 +37,7 @@ type RawLintRow = {
   // The Go analysis service stores this as a JSONB array on Supabase but as
   // a serialised JSON string in the local dump (and sometimes empty). The
   // adapter below coerces all observed shapes into a flat finding list.
-  lintResults: unknown;
+  results: unknown;
 };
 
 const SEVERITY_BUCKETS: Record<string, LintSeverity> = {
@@ -109,7 +109,7 @@ function adaptLint(row: RawLintRow): Lint {
     certIssuer: row.certIssuer ?? "(no issuer)",
     scannedAt: row.scannedAt,
     status: toLintStatus(row.status),
-    lintResults: toLintResults(row.lintResults),
+    lintResults: toLintResults(row.results),
   };
 }
 
@@ -120,12 +120,12 @@ export async function getFinishedScans(): Promise<FinishedScan[]> {
 }
 
 export async function getLintsForScan(scanId: string): Promise<Lint[]> {
-  const res = await fetch(`${BASE_URL}/results/scans/${scanId}/lints`, {
+  const res = await fetch(`${ANALYSIS_API}/scan/${scanId}`, {
     cache: "no-store",
   });
   if (res.status === 404) return [];
   if (!res.ok) throw new Error(`Failed to fetch lints (${res.status})`);
-  const rows: RawLintRow[] = await res.json();
+  const rows: RawLintRow[] = (await res.json()).results;
   return rows.map(adaptLint);
 }
 
