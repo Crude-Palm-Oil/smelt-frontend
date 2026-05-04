@@ -159,6 +159,79 @@ export async function getPolicyProfiles() {
   throw new Error("Not implemented — use mock data");
 }
 
+// --- Monitoring feature -------------------------------------------------
+//
+// Backend returns ScanSummary[] from /monitoring/{ongoing,alerts,scans};
+// the frontend's monitoring components consume scan-centric types
+// (OngoingScan / FailedScan / ScanRecord). The adapters below close that gap.
+
+import type {
+  OngoingScan,
+  FailedScan,
+  ScanRecord,
+  ScanStatus as MonitoringScanStatus,
+} from "@/lib/mock-monitoring-data";
+
+type RawScanSummary = {
+  id: string;
+  name: string;
+  status: string;
+  target_count: number;
+  processed_count: number;
+  scanned_at: string;
+  created_at: string;
+};
+
+const FAIL_STATUSES = new Set(["error", "fatal"]);
+
+function toMonitoringStatus(raw: string): MonitoringScanStatus {
+  return FAIL_STATUSES.has(raw.toLowerCase()) ? "fail" : "pass";
+}
+
+async function fetchScanSummaries(path: string): Promise<RawScanSummary[]> {
+  const res = await fetch(`${REPORT_API}${path}`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Failed to fetch ${path} (${res.status})`);
+  return res.json();
+}
+
+export async function getOngoingScans(): Promise<OngoingScan[]> {
+  const rows = await fetchScanSummaries("/monitoring/ongoing");
+  const now = Date.now();
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    startedAtOffsetSec: Math.max(
+      0,
+      Math.floor((now - new Date(row.scanned_at).getTime()) / 1000),
+    ),
+    config: "Default",
+  }));
+}
+
+export async function getFailedScans(): Promise<FailedScan[]> {
+  const rows = await fetchScanSummaries("/monitoring/alerts");
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    scannedAt: row.scanned_at,
+    issues: `${row.target_count} target${row.target_count === 1 ? "" : "s"} flagged · status ${row.status.toUpperCase()}`,
+    config: "Default",
+  }));
+}
+
+export async function getMonitoringHistory(): Promise<ScanRecord[]> {
+  const rows = await fetchScanSummaries("/monitoring/scans");
+  return rows
+    .filter((row) => !["running", "paused", "stopped"].includes(row.status))
+    .map((row) => ({
+      id: row.id,
+      name: row.name,
+      scannedAt: row.scanned_at,
+      status: toMonitoringStatus(row.status),
+      config: "Default",
+    }));
+}
+
 export async function getMonitoredDomains() {
   throw new Error("Not implemented — use mock data");
 }

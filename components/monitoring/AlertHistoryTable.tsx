@@ -2,11 +2,15 @@
 
 import { useState } from "react";
 import { AlertTriangle, ShieldX } from "lucide-react";
-import { failedScans } from "@/lib/mock-monitoring-data";
+import type { FailedScan } from "@/lib/mock-monitoring-data";
 import { timeAgo } from "@/lib/utils";
 import ScanDetailModal, { type ScanDetail } from "./ScanDetailModal";
 
-export default function AlertHistoryTable() {
+export default function AlertHistoryTable({
+  failedScans,
+}: {
+  failedScans: FailedScan[];
+}) {
   const [selected, setSelected] = useState<ScanDetail | null>(null);
 
   if (failedScans.length === 0) {
