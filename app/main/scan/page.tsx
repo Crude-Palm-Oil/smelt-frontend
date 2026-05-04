@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Globe, Upload, Search, Plus, Server } from "lucide-react";
-import { apiFetch } from "@/lib/scans";
+import { uploadAndScanCertificates, scanTargets } from "@/lib/server/scans";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_SCAN_URL;
 
@@ -106,15 +106,18 @@ export default function ScanPage() {
     });
 
     try {
-      const res = await apiFetch("/integration/upload-and-scan", {
-        method: "POST",
-        body: formData,
-      });
+      const data = await uploadAndScanCertificates(formData);
 
-      const data = await res.json();
+      if (data?.error) {
+        alert(data.message);
+        return;
+      }
+
       setResult(data);
+      setShowSuccess(true);
     } catch (err) {
       console.error(err);
+      alert("Upload failed");
     } finally {
       setLoading(false);
     }
@@ -172,21 +175,16 @@ export default function ScanPage() {
     setLoading(true);
 
     try {
-      const res = await apiFetch("/integration/scan-targets", {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json",
-        },
-
-        body: JSON.stringify({ type: "target", targets }),
+      const data = await scanTargets({
+        type: "target",
+        targets,
       });
 
-      if (!res.ok) {
-        throw new Error(await res.text());
+      if (data?.error) {
+        alert(data.message);
+        return;
       }
 
-      const data = await res.json();
       setResult(data);
       setShowSuccess(true);
     } catch (err) {
