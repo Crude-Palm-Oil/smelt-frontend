@@ -1,32 +1,47 @@
 import Link from "next/link";
 import { ArrowLeft, TriangleAlert } from "lucide-react";
 
-const findings = [
-  {
-    title: "SHA-1 Signature Detected",
-    scan: "Legacy Services Audit",
-    severity: "Critical",
-    affected: "3 certificates",
-    description:
-      "One or more certificates are still using SHA-1 based signatures and should be replaced.",
-  },
-  {
-    title: "Expired Certificate Still Active",
-    scan: "Legacy Services Audit",
-    severity: "Fatal",
-    affected: "1 certificate",
-    description:
-      "An expired certificate is still being served by a monitored endpoint.",
-  },
-  {
-    title: "Oversized Certificate Lifetime",
-    scan: "Third-party Vendor Certs",
-    severity: "Critical",
-    affected: "2 certificates",
-    description:
-      "Certificate lifetime exceeds the accepted compliance threshold.",
-  },
-];
+type CriticalFinding = {
+  id: string;
+  scan_id: string;
+  scan_name: string;
+  target_id: string | null;
+  cert_id: string | null;
+  status: string;
+  name: string;
+  description: string;
+  citation: string | null;
+  source: string | null;
+};
+
+async function getCriticalFindings(): Promise<CriticalFinding[]> {
+  const apiBaseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL;
+
+  const res = await fetch(`${apiBaseUrl}/api/dashboard/critical-findings`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch critical findings");
+  }
+
+  return res.json();
+}
+
+function getSeverityLabel(status: string) {
+  const normalizedStatus = status.toLowerCase();
+
+  if (normalizedStatus === "fatal") {
+    return "Fatal";
+  }
+
+  if (normalizedStatus === "error" || normalizedStatus === "fail") {
+    return "Critical";
+  }
+
+  return "Critical";
+}
 
 function getSeverityClass(severity: string) {
   if (severity === "Fatal") {
@@ -36,7 +51,27 @@ function getSeverityClass(severity: string) {
   return "border-red-500/40 bg-red-500/10 text-red-400";
 }
 
-export default function CriticalFindingsPage() {
+function formatRuleName(name: string) {
+  return name
+    .replace(/^e_/, "")
+    .replace(/^w_/, "")
+    .replace(/^n_/, "")
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
+export default async function CriticalFindingsPage() {
+  const findings = await getCriticalFindings();
+
+  const totalFindings = findings.length;
+  const fatalFindings = findings.filter(
+    (finding) => finding.status.toLowerCase() === "fatal"
+  ).length;
+
+  const affectedScans = new Set(findings.map((finding) => finding.scan_id))
+    .size;
+
   return (
     <main className="min-h-screen bg-[#080809] px-8 py-6 text-zinc-100">
       <div className="mb-8">
@@ -68,7 +103,9 @@ export default function CriticalFindingsPage() {
           <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">
             Total Findings
           </p>
-          <p className="mt-4 text-3xl font-semibold text-fuchsia-400">3</p>
+          <p className="mt-4 text-3xl font-semibold text-fuchsia-400">
+            {totalFindings}
+          </p>
           <p className="mt-2 text-xs text-zinc-500">Critical or fatal issues</p>
         </div>
 
@@ -76,7 +113,9 @@ export default function CriticalFindingsPage() {
           <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">
             Fatal Findings
           </p>
-          <p className="mt-4 text-3xl font-semibold text-red-400">1</p>
+          <p className="mt-4 text-3xl font-semibold text-red-400">
+            {fatalFindings}
+          </p>
           <p className="mt-2 text-xs text-zinc-500">Immediate action required</p>
         </div>
 
@@ -84,51 +123,89 @@ export default function CriticalFindingsPage() {
           <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">
             Affected Scans
           </p>
-          <p className="mt-4 text-3xl font-semibold text-yellow-400">2</p>
+          <p className="mt-4 text-3xl font-semibold text-yellow-400">
+            {affectedScans}
+          </p>
           <p className="mt-2 text-xs text-zinc-500">Scans contain major issues</p>
         </div>
       </section>
 
       <section className="mt-8 space-y-4">
-        {findings.map((finding) => (
-          <div
-            key={finding.title}
-            className="rounded-xl border border-zinc-800 bg-zinc-950 p-6"
-          >
-            <div className="flex items-start justify-between gap-6">
-              <div>
-                <div className="mb-3 flex items-center gap-3">
-                  <span
-                    className={`rounded-md border px-3 py-1 text-xs ${getSeverityClass(
-                      finding.severity
-                    )}`}
-                  >
-                    {finding.severity}
-                  </span>
-
-                  <p className="text-xs uppercase tracking-[0.25em] text-zinc-600">
-                    {finding.scan}
-                  </p>
-                </div>
-
-                <h2 className="text-base font-medium text-zinc-100">
-                  {finding.title}
-                </h2>
-
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-500">
-                  {finding.description}
-                </p>
-              </div>
-
-              <div className="min-w-40 rounded-lg border border-zinc-800 bg-zinc-900/40 px-4 py-3 text-right">
-                <p className="text-xs text-zinc-500">Affected</p>
-                <p className="mt-1 text-sm font-medium text-zinc-200">
-                  {finding.affected}
-                </p>
-              </div>
-            </div>
+        {findings.length === 0 ? (
+          <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-8 text-center">
+            <p className="text-sm text-zinc-400">
+              No critical or fatal findings found.
+            </p>
+            <p className="mt-2 text-xs text-zinc-600">
+              New findings will appear here after scan results are processed.
+            </p>
           </div>
-        ))}
+        ) : (
+          findings.map((finding) => {
+            const severity = getSeverityLabel(finding.status);
+
+            return (
+              <div
+                key={finding.id}
+                className="rounded-xl border border-zinc-800 bg-zinc-950 p-6"
+              >
+                <div className="flex items-start justify-between gap-6">
+                  <div>
+                    <div className="mb-3 flex flex-wrap items-center gap-3">
+                      <span
+                        className={`rounded-md border px-3 py-1 text-xs ${getSeverityClass(
+                          severity
+                        )}`}
+                      >
+                        {severity}
+                      </span>
+
+                      <p className="text-xs uppercase tracking-[0.25em] text-zinc-600">
+                        {finding.scan_name || "Unnamed Scan"}
+                      </p>
+
+                      {finding.source && (
+                        <span className="rounded-md border border-zinc-800 bg-zinc-900 px-2 py-1 text-xs text-zinc-500">
+                          {finding.source}
+                        </span>
+                      )}
+                    </div>
+
+                    <h2 className="text-base font-medium text-zinc-100">
+                      {formatRuleName(finding.name)}
+                    </h2>
+
+                    <p className="mt-1 text-xs text-zinc-600">
+                      Rule: {finding.name}
+                    </p>
+
+                    <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-500">
+                      {finding.description || "No description available."}
+                    </p>
+
+                    {finding.citation && (
+                      <p className="mt-3 text-xs text-zinc-600">
+                        Citation: {finding.citation}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="min-w-48 rounded-lg border border-zinc-800 bg-zinc-900/40 px-4 py-3 text-right">
+                    <p className="text-xs text-zinc-500">Certificate</p>
+                    <p className="mt-1 break-all text-sm font-medium text-zinc-200">
+                      {finding.cert_id || "N/A"}
+                    </p>
+
+                    <p className="mt-3 text-xs text-zinc-500">Target</p>
+                    <p className="mt-1 break-all text-xs text-zinc-400">
+                      {finding.target_id || "N/A"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
       </section>
     </main>
   );

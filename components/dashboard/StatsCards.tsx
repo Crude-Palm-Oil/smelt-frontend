@@ -6,42 +6,68 @@ import {
   ClockAlert,
 } from "lucide-react";
 
-const stats = [
-  {
-    label: "Certificates Checked",
-    value: "8",
-    sub: "Across 8 finished scans",
-    color: "text-emerald-400",
-    icon: CheckCircle2,
-    href: "/main/results",
-  },
-  {
-    label: "Compliance Pass Rate",
-    value: "62.5%",
-    sub: "5 of 8 checks passed",
-    color: "text-yellow-400",
-    icon: ShieldCheck,
-    href: "/main/reports",
-  },
-  {
-    label: "Critical / Fatal Findings",
-    value: "3",
-    sub: "Requires immediate review",
-    color: "text-fuchsia-400",
-    icon: TriangleAlert,
-    href: "/main/dashboard/critical-findings",
-  },
-  {
-    label: "Expiring Soon",
-    value: "5",
-    sub: "Certificates expiring in 30 days",
-    color: "text-red-400",
-    icon: ClockAlert,
-    href: "/main/dashboard/expiring-soon",
-  },
-];
+type DashboardSummary = {
+  certificates_checked: number;
+  compliance_pass_rate: number;
+  passed_checks: number;
+  total_checks: number;
+  critical_fatal_findings: number;
+  expiring_soon: number;
+};
 
-export default function StatsCards() {
+async function getDashboardSummary(): Promise<DashboardSummary> {
+  const apiBaseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL;
+
+  const res = await fetch(`${apiBaseUrl}/api/dashboard/summary`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch dashboard summary");
+  }
+
+  return res.json();
+}
+
+export default async function StatsCards() {
+  const summary = await getDashboardSummary();
+
+  const stats = [
+    {
+      label: "Certificates Checked",
+      value: String(summary.certificates_checked),
+      sub: "Across recent finished scans",
+      color: "text-emerald-400",
+      icon: CheckCircle2,
+      href: "/main/results",
+    },
+    {
+      label: "Compliance Pass Rate",
+      value: `${summary.compliance_pass_rate}%`,
+      sub: `${summary.passed_checks} of ${summary.total_checks} checks passed`,
+      color: "text-yellow-400",
+      icon: ShieldCheck,
+      href: "/main/reports",
+    },
+    {
+      label: "Critical / Fatal Findings",
+      value: String(summary.critical_fatal_findings),
+      sub: "Requires immediate review",
+      color: "text-fuchsia-400",
+      icon: TriangleAlert,
+      href: "/main/dashboard/critical-findings",
+    },
+    {
+      label: "Expiring Soon",
+      value: String(summary.expiring_soon),
+      sub: "Validity-related findings",
+      color: "text-red-400",
+      icon: ClockAlert,
+      href: "/main/dashboard/expiring-soon",
+    },
+  ];
+
   return (
     <div className="grid grid-cols-4 gap-6">
       {stats.map((stat) => {
@@ -71,15 +97,11 @@ export default function StatsCards() {
           </div>
         );
 
-        if (stat.href) {
-          return (
-            <Link key={stat.label} href={stat.href}>
-              {card}
-            </Link>
-          );
-        }
-
-        return <div key={stat.label}>{card}</div>;
+        return (
+          <Link key={stat.label} href={stat.href}>
+            {card}
+          </Link>
+        );
       })}
     </div>
   );

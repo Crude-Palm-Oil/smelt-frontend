@@ -1,35 +1,54 @@
 import Link from "next/link";
 import Badge from "@/components/ui/badge/Badge";
-import { finishedScans } from "@/lib/mock-results-data"; 
 
-// TODO: Change Fail to Error Due to LINTS
-function getScanStatus(scan: {
-  lintsWarn: number;
-  lintsFail: number;
-  lintsFatal: number;
-}) {
-  if (scan.lintsFatal > 0) return "FATAL";
-  if (scan.lintsFail > 0) return "FAIL";
-  if (scan.lintsWarn > 0) return "WARN";
-  return "PASS";
+type RecentScan = {
+  id: string;
+  name: string;
+  status: string;
+  targets: number;
+  issues: number;
+  date: string;
+  time: string;
+};
+
+async function getRecentScans(): Promise<RecentScan[]> {
+  const apiBaseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL;
+
+  const res = await fetch(`${apiBaseUrl}/api/dashboard/recent-scans`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch recent scans");
+  }
+
+  return res.json();
 }
 
-function formatDate(scannedAt: string) {
-  const date = new Date(scannedAt);
+function normalizeStatus(status: string) {
+  const normalizedStatus = status.toLowerCase();
 
-  return date
-    .toISOString()
-    .replace("T", "\n")
-    .slice(0, 16);
+  if (normalizedStatus === "fatal") return "FATAL";
+  if (normalizedStatus === "fail" || normalizedStatus === "error") return "FAIL";
+  if (normalizedStatus === "warn" || normalizedStatus === "warning") return "WARN";
+  if (normalizedStatus === "pass" || normalizedStatus === "success") return "PASS";
+
+  return "WARN";
 }
 
-export default function RecentScansTable() {
-  const recentScans = [...finishedScans]
-    .sort(
-      (a, b) =>
-        new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime(),
-    )
-    .slice(0, 8);
+function formatDate(date: string, time: string) {
+  if (!date || date === "-") return "-";
+
+  if (!time || time === "-") {
+    return date;
+  }
+
+  return `${date}\n${time}`;
+}
+
+export default async function RecentScansTable() {
+  const recentScans = await getRecentScans();
 
   return (
     <section>
@@ -60,40 +79,50 @@ export default function RecentScansTable() {
           <p>DATE</p>
         </div>
 
-        {recentScans.map((scan) => {
-          const status = getScanStatus(scan);
-          const issueCount =
-            scan.lintsInfo + scan.lintsWarn + scan.lintsFail + scan.lintsFatal;
+        {recentScans.length === 0 ? (
+          <div className="px-8 py-10 text-sm text-zinc-500">
+            No recent scans found.
+          </div>
+        ) : (
+          recentScans.map((scan) => {
+            const status = normalizeStatus(scan.status);
 
-          return (
-            <Link
-              key={scan.id}
-              href={`/main/results/${scan.id}`}
-              className="grid grid-cols-[1.6fr_1fr_0.8fr_0.9fr_1fr] items-center border-b border-zinc-800 px-8 py-7 text-sm transition last:border-b-0 hover:bg-zinc-900/60"
-            >
-              <div>
-                <p className="text-cyan-400">{scan.name}</p>
-                <p className="mt-1 text-xs text-zinc-600">
-                  {scan.id.slice(0, 8)}
+            return (
+              <Link
+                key={scan.id}
+                href={`/main/results/${scan.id}`}
+                className="grid grid-cols-[1.6fr_1fr_0.8fr_0.9fr_1fr] items-center border-b border-zinc-800 px-8 py-7 text-sm transition last:border-b-0 hover:bg-zinc-900/60"
+              >
+                <div>
+                  <p className="text-cyan-400">
+                    {scan.name || "Unnamed Scan"}
+                  </p>
+                  <p className="mt-1 text-xs text-zinc-600">
+                    {scan.id.slice(0, 8)}
+                  </p>
+                </div>
+
+                <div>
+                  <Badge variant={status}>{status}</Badge>
+                </div>
+
+                <p className="text-zinc-300">{scan.targets}</p>
+
+                <p
+                  className={
+                    scan.issues > 0 ? "text-red-400" : "text-zinc-500"
+                  }
+                >
+                  {scan.issues}
                 </p>
-              </div>
 
-              <div>
-                <Badge variant={status}>{status}</Badge>
-              </div>
-
-              <p className="text-zinc-300">{scan.targetCount}</p>
-
-              <p className={issueCount > 0 ? "text-red-400" : "text-zinc-500"}>
-                {issueCount}
-              </p>
-
-              <p className="whitespace-pre-line text-zinc-500">
-                {formatDate(scan.scannedAt)}
-              </p>
-            </Link>
-          );
-        })}
+                <p className="whitespace-pre-line text-zinc-500">
+                  {formatDate(scan.date, scan.time)}
+                </p>
+              </Link>
+            );
+          })
+        )}
       </div>
     </section>
   );
