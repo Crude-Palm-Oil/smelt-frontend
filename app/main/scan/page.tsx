@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { Globe, Upload, Search, Plus, Server } from "lucide-react";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_SCAN_URL;
+
 type ScanTab = "domain-ip" | "dns-records" | "upload-certificate";
 
 type RecentScan = {
@@ -11,6 +13,7 @@ type RecentScan = {
   type: "domain" | "dns" | "upload";
   time: string;
 };
+
 
 const recentScans: RecentScan[] = [
   { id: 1, name: "api.example.com", type: "domain", time: "2 hours ago" },
@@ -104,7 +107,7 @@ export default function ScanPage() {
 
     try {
       const res = await fetch(
-        "http://localhost:8000/integration/upload-and-scan",
+        `${API_BASE_URL}/integration/upload-and-scan`,
         {
           method: "POST",
           body: formData,
@@ -173,7 +176,7 @@ export default function ScanPage() {
 
     try {
       const res = await fetch(
-        "http://localhost:8000/integration/scan-targets",
+        `${API_BASE_URL}/integration/scan-targets`,
         {
           method: "POST",
           headers: {
