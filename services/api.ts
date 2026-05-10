@@ -136,13 +136,13 @@ export async function scanDomain(target: string, port?: number) {
 }
 
 export async function getReports() {
-  const res = await fetch(`${REPORT_API}/reports`)
+  const res = await fetch(`${REPORT_API}/api/reports`, { cache: "no-store" })
   if (!res.ok) throw new Error("Failed to fetch reports")
   return res.json()
 }
 
 export async function generateReport(scanId: string): Promise<void> {
-  await fetch(`${REPORT_API}/reports/generate`, {
+  await fetch(`${REPORT_API}/api/reports/generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ scan_id: scanId }),
