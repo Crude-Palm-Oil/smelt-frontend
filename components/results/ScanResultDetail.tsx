@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   CheckCircle2,
@@ -16,6 +16,10 @@ import {
   Target as TargetIcon,
   Calendar,
   ArrowLeft,
+  FileText,
+  Eye,
+  Download,
+  Loader2,
 } from "lucide-react";
 import {
   type FinishedScan,
@@ -342,13 +346,92 @@ function SummaryPill({
   );
 }
 
+
+function ReportBox({ scanId, initialStatus }: { scanId: string, initialStatus: string }) {
+  const [status, setStatus] = useState<"Pending" | "Generating" | "Ready" | "Failed">(
+    initialStatus as "Pending" | "Generating" | "Ready" | "Failed"
+  )
+
+  useEffect(() => {
+    if (status !== "Ready") {
+      triggerGenerate(scanId)
+    }
+  }, [scanId])
+
+  function triggerGenerate(id: string) {
+    setStatus("Generating")
+    fetch(`/api/reports/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ scan_id: id }),
+    })
+      .then(() => setStatus("Ready"))
+      .catch(() => setStatus("Failed"))
+  }
+
+  const handleView = () => {
+    window.open(`/api/reports/serve/${scanId}`, "_blank")
+  }
+
+  const handleDownload = () => {
+    const a = document.createElement("a")
+    a.href = `/api/reports/download/${scanId}`
+    a.download = `report-${scanId}.html`
+    a.click()
+  }
+
+  return (
+    <div className="rounded-lg border border-zinc-800 bg-zinc-900/30 px-3 py-2.5">
+      <div className="flex items-center gap-1.5 text-zinc-500">
+        <FileText size={12} />
+        <p className="font-mono text-[10px] uppercase tracking-widest">Report</p>
+      </div>
+      <div className="mt-1 flex items-center justify-between">
+        {status === "Generating" ? (
+          <div className="flex items-center gap-1.5 text-yellow-400">
+            <Loader2 size={11} className="animate-spin" />
+            <span className="font-mono text-xs">Generating</span>
+          </div>
+        ) : status === "Ready" ? (
+          <span className="font-mono text-xs text-emerald-400">Ready</span>
+        ) : status === "Failed" ? (
+          <span className="font-mono text-xs text-red-400">Failed</span>
+        ) : (
+          <span className="font-mono text-xs text-zinc-600">Pending</span>
+        )}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleView}
+            disabled={status !== "Ready"}
+            className={`transition ${status === "Ready" ? "text-zinc-400 hover:text-zinc-100" : "cursor-not-allowed text-zinc-700"}`}
+            title="View report"
+          >
+            <Eye size={13} />
+          </button>
+          <button
+            onClick={handleDownload}
+            disabled={status !== "Ready"}
+            className={`transition ${status === "Ready" ? "text-zinc-400 hover:text-zinc-100" : "cursor-not-allowed text-zinc-700"}`}
+            title="Download report"
+          >
+            <Download size={13} />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function ScanResultDetail({
   scan,
   lints,
+  initialReportStatus,
 }: {
   scan: FinishedScan;
   lints: Lint[];
+  initialReportStatus: string;
 }) {
+  console.log("initialReportStatus:", initialReportStatus)
   const failingCertCount = lints.filter(
     (l) => l.status === "fatal" || l.status === "fail",
   ).length;
@@ -415,7 +498,8 @@ export default function ScanResultDetail({
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {/* Updated grid: 5 columns to include the new Report box */}
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-5">
           <MetaCard
             icon={<Calendar size={12} />}
             label="Scanned"
@@ -437,6 +521,7 @@ export default function ScanResultDetail({
             value={scan.status.toUpperCase()}
             tone={scan.status === "completed" ? "emerald" : "red"}
           />
+          <ReportBox scanId={scan.id} initialStatus={initialReportStatus} />
         </div>
       </header>
 

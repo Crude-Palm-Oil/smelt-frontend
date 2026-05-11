@@ -136,7 +136,7 @@ export async function scanDomain(target: string, port?: number) {
 }
 
 export async function getReports() {
-  const res = await fetch(`${REPORT_API}/api/reports`, { cache: "no-store" })
+  const res = await fetch(`${REPORT_API}/reports`, { cache: "no-store" })
   if (!res.ok) throw new Error("Failed to fetch reports")
   return res.json()
 }
