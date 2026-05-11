@@ -26,13 +26,13 @@ type RawFinding = {
 
 type RawLintRow = {
   id: string;
-  scanId: string;
-  targetId: string | null;
-  certId: string;
-  targetName: string | null;
-  certSubject: string | null;
-  certIssuer: string | null;
-  scannedAt: string;
+  scan_id: string;
+  target_id: string | null;
+  cert_id: string;
+  target_name: string | null;
+  cert_subject: string | null;
+  cert_issuer: string | null;
+  scanned_at: string;
   status: string;
   // The Go analysis service stores this as a JSONB array on Supabase but as
   // a serialised JSON string in the local dump (and sometimes empty). The
@@ -101,13 +101,13 @@ function toLintResults(raw: unknown): LintResults {
 function adaptLint(row: RawLintRow): Lint {
   return {
     id: row.id,
-    scanId: row.scanId,
-    targetId: row.targetId,
-    certId: row.certId,
-    targetName: row.targetName ?? "(no target)",
-    certSubject: row.certSubject ?? "(no subject)",
-    certIssuer: row.certIssuer ?? "(no issuer)",
-    scannedAt: row.scannedAt,
+    scanId: row.scan_id,
+    targetId: row.target_id,
+    certId: row.cert_id,
+    targetName: row.target_name ?? "(no target)",
+    certSubject: row.cert_subject ?? "(no subject)",
+    certIssuer: row.cert_issuer ?? "(no issuer)",
+    scannedAt: row.scanned_at,
     status: toLintStatus(row.status),
     lintResults: toLintResults(row.results),
   };
