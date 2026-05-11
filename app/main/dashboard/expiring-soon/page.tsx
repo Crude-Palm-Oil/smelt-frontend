@@ -1,32 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, ClockAlert } from "lucide-react";
-
-type ExpiringFinding = {
-  scan_id: string;
-  scan_name: string;
-  target_id: string | null;
-  cert_id: string | null;
-  name: string;
-  status: string;
-  description: string;
-  citation: string | null;
-  source: string | null;
-};
-
-async function getExpiringSoon(): Promise<ExpiringFinding[]> {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  const res = await fetch(`${apiBaseUrl}/api/dashboard/expiring-soon`, {
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    throw new Error("Failed to fetch expiring soon findings");
-  }
-
-  return res.json();
-}
+import { getExpiringSoon } from "@/lib/server/dashboard";
 
 function getStatusLabel(status: string) {
   const normalizedStatus = status.toLowerCase();
