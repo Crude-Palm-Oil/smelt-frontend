@@ -1,33 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, TriangleAlert } from "lucide-react";
-
-type CriticalFinding = {
-  id: string;
-  scan_id: string;
-  scan_name: string;
-  target_id: string | null;
-  cert_id: string | null;
-  status: string;
-  name: string;
-  description: string;
-  citation: string | null;
-  source: string | null;
-};
-
-async function getCriticalFindings(): Promise<CriticalFinding[]> {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  const res = await fetch(`${apiBaseUrl}/api/dashboard/critical-findings`, {
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    throw new Error("Failed to fetch critical findings");
-  }
-
-  return res.json();
-}
+import { getCriticalFindings } from "@/lib/server/dashboard";
 
 function getSeverityLabel(status: string) {
   const normalizedStatus = status.toLowerCase();
@@ -65,12 +38,12 @@ export default async function CriticalFindingsPage() {
   const findings = await getCriticalFindings();
 
   const totalFindings = findings.length;
+
   const fatalFindings = findings.filter(
     (finding) => finding.status.toLowerCase() === "fatal"
   ).length;
 
-  const affectedScans = new Set(findings.map((finding) => finding.scan_id))
-    .size;
+  const affectedScans = new Set(findings.map((finding) => finding.scan_id)).size;
 
   return (
     <main className="min-h-screen bg-[#080809] px-8 py-6 text-zinc-100">
@@ -126,7 +99,9 @@ export default async function CriticalFindingsPage() {
           <p className="mt-4 text-3xl font-semibold text-yellow-400">
             {affectedScans}
           </p>
-          <p className="mt-2 text-xs text-zinc-500">Scans contain major issues</p>
+          <p className="mt-2 text-xs text-zinc-500">
+            Scans contain major issues
+          </p>
         </div>
       </section>
 

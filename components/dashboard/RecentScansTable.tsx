@@ -1,30 +1,6 @@
 import Link from "next/link";
 import Badge from "@/components/ui/badge/Badge";
-
-type RecentScan = {
-  id: string;
-  name: string;
-  status: string;
-  targets: number;
-  issues: number;
-  date: string;
-  time: string;
-};
-
-async function getRecentScans(): Promise<RecentScan[]> {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  const res = await fetch(`${apiBaseUrl}/api/dashboard/recent-scans`, {
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    throw new Error("Failed to fetch recent scans");
-  }
-
-  return res.json();
-}
+import { getRecentScans } from "@/lib/server/dashboard";
 
 function normalizeStatus(status: string) {
   const normalizedStatus = status.toLowerCase();

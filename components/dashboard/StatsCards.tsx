@@ -5,30 +5,7 @@ import {
   TriangleAlert,
   ClockAlert,
 } from "lucide-react";
-
-type DashboardSummary = {
-  certificates_checked: number;
-  compliance_pass_rate: number;
-  passed_checks: number;
-  total_checks: number;
-  critical_fatal_findings: number;
-  expiring_soon: number;
-};
-
-async function getDashboardSummary(): Promise<DashboardSummary> {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  const res = await fetch(`${apiBaseUrl}/api/dashboard/summary`, {
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    throw new Error("Failed to fetch dashboard summary");
-  }
-
-  return res.json();
-}
+import { getDashboardSummary } from "@/lib/server/dashboard";
 
 export default async function StatsCards() {
   const summary = await getDashboardSummary();
@@ -43,12 +20,12 @@ export default async function StatsCards() {
       href: "/main/results",
     },
     {
-      label: "Compliance Pass Rate",
+      label: "Compliance Acceptable Rate",
       value: `${summary.compliance_pass_rate}%`,
-      sub: `${summary.passed_checks} of ${summary.total_checks} checks passed`,
+      sub: `${summary.passed_checks + summary.warning_checks} of ${summary.total_checks} checks acceptable`,
       color: "text-yellow-400",
       icon: ShieldCheck,
-      href: "/main/reports",
+      href: "/main/dashboard/compliance-pass-rate",
     },
     {
       label: "Critical / Fatal Findings",
@@ -96,6 +73,10 @@ export default async function StatsCards() {
             <p className="mt-2 text-xs text-zinc-500">{stat.sub}</p>
           </div>
         );
+
+        if (!stat.href) {
+          return <div key={stat.label}>{card}</div>;
+        }
 
         return (
           <Link key={stat.label} href={stat.href}>

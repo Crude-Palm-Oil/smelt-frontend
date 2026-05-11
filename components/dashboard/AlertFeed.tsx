@@ -5,30 +5,9 @@ import {
   AlertTriangle,
   CheckCircle2,
 } from "lucide-react";
+import { getDashboardAlerts } from "@/lib/server/dashboard";
 
 type AlertTone = "success" | "warning" | "error" | "info";
-
-type DashboardAlert = {
-  id: string;
-  type: string;
-  message: string;
-  time_ago: string;
-};
-
-async function getAlerts(): Promise<DashboardAlert[]> {
-  const apiBaseUrl =
-    process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  const res = await fetch(`${apiBaseUrl}/api/dashboard/alerts`, {
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    throw new Error("Failed to fetch dashboard alerts");
-  }
-
-  return res.json();
-}
 
 function getAlertTone(type: string): AlertTone {
   const normalizedType = type.toLowerCase();
@@ -80,7 +59,7 @@ function getAlertIcon(tone: AlertTone) {
 }
 
 export default async function AlertFeed() {
-  const alerts = await getAlerts();
+  const alerts = await getDashboardAlerts();
 
   return (
     <section>
