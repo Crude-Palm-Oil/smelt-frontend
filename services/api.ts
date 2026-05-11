@@ -10,7 +10,9 @@ import type {
 } from "@/lib/mock-results-data";
 
 const ANALYSIS_API = process.env.NEXT_PUBLIC_ANALYSIS_API_URL ?? "http://localhost:8080";
-const REPORT_API = process.env.NEXT_PUBLIC_REPORT_API_URL ?? "http://localhost:8001";
+// Strip a trailing `/api` so callers can always write `${REPORT_API}/api/reports/...`
+// regardless of whether the env var was set with or without the prefix.
+const REPORT_API = (process.env.NEXT_PUBLIC_REPORT_API_URL ?? "http://localhost:8001").replace(/\/api\/?$/, "");
 const CONFIG_API = process.env.NEXT_PUBLIC_CONFIG_API_URL ?? "http://localhost:8002";
 const BASE_URL = process.env.NEXT_PUBLIC_API_SCAN_URL ?? "http://localhost:8000";
 
@@ -24,20 +26,31 @@ type RawFinding = {
   description?: string;
 };
 
+// Shape returned by the Go analysis service (`GET /scan/:id`). Keys come
+// straight from `cmd/api/dto.LintResult` and are snake_case.
 type RawLintRow = {
   id: string;
-  scan_id: string;
   target_id: string | null;
-  cert_id: string;
+  cert_id: string | null;
   target_name: string | null;
   cert_subject: string | null;
   cert_issuer: string | null;
-  scanned_at: string;
   status: string;
   // The Go analysis service stores this as a JSONB array on Supabase but as
   // a serialised JSON string in the local dump (and sometimes empty). The
   // adapter below coerces all observed shapes into a flat finding list.
   results: unknown;
+};
+
+// The outer envelope returned by the Go analysis service. We pull
+// scan-level metadata from here since the per-lint rows don't carry it.
+type RawScanResult = {
+  id: string;
+  name?: string;
+  scanned_at?: string;
+  created_at?: string;
+  status?: string;
+  results?: RawLintRow[];
 };
 
 const SEVERITY_BUCKETS: Record<string, LintSeverity> = {
@@ -98,16 +111,16 @@ function toLintResults(raw: unknown): LintResults {
   return { summary, findings };
 }
 
-function adaptLint(row: RawLintRow): Lint {
+function adaptLint(row: RawLintRow, scanId: string, scannedAt: string): Lint {
   return {
     id: row.id,
-    scanId: row.scan_id,
+    scanId,
     targetId: row.target_id,
-    certId: row.cert_id,
+    certId: row.cert_id ?? "",
     targetName: row.target_name ?? "(no target)",
-    certSubject: row.cert_subject ?? "(no subject)",
+    certSubject: row.cert_subject ? `CN=${row.cert_subject}` : "(no subject)",
     certIssuer: row.cert_issuer ?? "(no issuer)",
-    scannedAt: row.scanned_at,
+    scannedAt,
     status: toLintStatus(row.status),
     lintResults: toLintResults(row.results),
   };
@@ -120,13 +133,24 @@ export async function getFinishedScans(): Promise<FinishedScan[]> {
 }
 
 export async function getLintsForScan(scanId: string): Promise<Lint[]> {
+  // Findings live in S3 and are returned by the Go analysis service; the
+  // FastAPI `/results/scans/{id}/lints` route only exposes the DB rows
+  // (no findings blob) so we go to the analysis service directly.
   const res = await fetch(`${ANALYSIS_API}/scan/${scanId}`, {
     cache: "no-store",
   });
   if (res.status === 404) return [];
   if (!res.ok) throw new Error(`Failed to fetch lints (${res.status})`);
-  const rows: RawLintRow[] = (await res.json()).results;
-  return rows.map(adaptLint);
+
+  const payload: RawScanResult = await res.json();
+  // While the scan is still running the Go service responds with
+  // `{status, processed_count, target_count}` and no results array.
+  // Treat that the same as "no findings yet" rather than crashing.
+  const rows = payload.results;
+  if (!Array.isArray(rows)) return [];
+
+  const scannedAt = payload.scanned_at ?? new Date().toISOString();
+  return rows.map((row) => adaptLint(row, scanId, scannedAt));
 }
 
 // --- Scan kickoff (placeholder) ----------------------------------------
@@ -136,8 +160,13 @@ export async function scanDomain(target: string, port?: number) {
 }
 
 export async function getReports() {
-  const res = await fetch(`${REPORT_API}/reports`, { cache: "no-store" })
-  if (!res.ok) throw new Error("Failed to fetch reports")
+  const res = await fetch(`${REPORT_API}/api/reports`, { cache: "no-store" })
+  if (!res.ok) {
+    // Reports service is optional for the detail page (the rest of the
+    // page renders fine without PDF status). Don't bring the page down.
+    console.warn(`getReports failed (${res.status})`);
+    return [];
+  }
   return res.json()
 }
 
@@ -183,8 +212,12 @@ function toMonitoringStatus(raw: string): MonitoringScanStatus {
 }
 
 async function fetchScanSummaries(path: string): Promise<RawScanSummary[]> {
-  const res = await fetch(`${REPORT_API}${path}`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Failed to fetch ${path} (${res.status})`);
+  // Monitoring endpoints live on smelt-backend (port 8000), not smelt-reports.
+  const res = await fetch(`${BASE_URL}${path}`, { cache: "no-store" });
+  if (!res.ok) {
+    console.warn(`fetchScanSummaries ${path} failed (${res.status})`);
+    return [];
+  }
   return res.json();
 }
 
