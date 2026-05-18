@@ -69,6 +69,7 @@ export default function ScanPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [scanName, setScanName] = useState("");
   const [dnsFile, setDnsFile] = useState<File | null>(null);
 
   const [targetsInput, setTargetsInput] = useState("");
@@ -77,6 +78,11 @@ export default function ScanPage() {
 
   const removeFile = (index: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDnsFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    setDnsFile(e.target.files[0]);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,15 +96,23 @@ export default function ScanPage() {
       return;
     }
 
+    if (files.length > 1 && !scanName.trim()) {
+      alert(
+        "Please enter a scan name when uploading more than one certificate.",
+      );
+      return;
+    }
+
     setLoading(true);
 
     const formData = new FormData();
+    formData.append("name", scanName.trim());
+
     files.forEach((file) => {
       formData.append("certificates", file);
     });
 
     try {
-
       const data = await uploadAndScanCertificates(formData);
 
       if (data?.error) {
@@ -107,8 +121,6 @@ export default function ScanPage() {
       }
 
       window.location.assign("/main/results?scan=finished");
-      setResult(data);
-      setShowSuccess(true);
     } catch (err) {
       console.error(err);
       alert("Upload failed");
@@ -117,20 +129,16 @@ export default function ScanPage() {
     }
   };
 
-  const handleDnsFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    setDnsFile(e.target.files[0]);
-  };
-
   const handleDnsZoneScan = async () => {
     if (!dnsFile) {
-      alert("Please upload a DNS zone file");
+      alert("Please upload a DNS zone file.");
       return;
     }
 
     setLoading(true);
 
     const formData = new FormData();
+    formData.append("name", scanName.trim() || dnsFile.name);
     formData.append("zone_file", dnsFile);
 
     try {
@@ -141,7 +149,6 @@ export default function ScanPage() {
         return;
       }
 
-      setResult(data);
       window.location.assign("/main/results?scan=finished");
     } catch (err) {
       console.error(err);
@@ -200,10 +207,19 @@ export default function ScanPage() {
       return;
     }
 
+    if (targets.length > 1 && !scanName.trim()) {
+      alert("Please enter a scan name when scanning more than one target.");
+      return;
+    }
+
+    const fallbackName =
+      targets[0]?.domain || targets[0]?.ip_address || "target-scan";
+
     setLoading(true);
 
     try {
       const data = await scanTargets({
+        name: scanName.trim() || fallbackName,
         type: "target",
         targets,
       });
@@ -214,8 +230,6 @@ export default function ScanPage() {
       }
 
       window.location.assign("/main/results?scan=finished");
-      setResult(data);
-      setShowSuccess(true);
     } catch (err) {
       console.error(err);
       alert("Scan failed");
@@ -279,6 +293,18 @@ export default function ScanPage() {
                       <label className="mb-3 block text-xs uppercase tracking-[0.2em] text-zinc-500">
                         Targets
                       </label>
+                      <div>
+                        <label className="mb-3 block text-xs uppercase tracking-[0.2em] text-zinc-500">
+                          Scan Name
+                        </label>
+                        <input
+                          type="text"
+                          value={scanName}
+                          onChange={(e) => setScanName(e.target.value)}
+                          placeholder="Optional for single target/file, required for multiple"
+                          className="w-full rounded-md border border-white/10 bg-black px-4 py-3 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-emerald-400/50"
+                        />
+                      </div>
                       <textarea
                         rows={4}
                         value={targetsInput}
@@ -325,6 +351,18 @@ export default function ScanPage() {
                 {activeTab === "dns-records" && (
                   <div className="space-y-6">
                     <div className="rounded-lg border border-dashed border-white/10 bg-[#0b0b0e] px-6 py-12 text-center transition hover:border-emerald-400/30">
+                      <div>
+                        <label className="mb-3 block text-xs uppercase tracking-[0.2em] text-zinc-500">
+                          Scan Name
+                        </label>
+                        <input
+                          type="text"
+                          value={scanName}
+                          onChange={(e) => setScanName(e.target.value)}
+                          placeholder="Optional for single target/file, required for multiple"
+                          className="w-full rounded-md border border-white/10 bg-black px-4 py-3 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-emerald-400/50"
+                        />
+                      </div>
                       <input
                         type="file"
                         accept=".zone,.db,.txt"
@@ -399,6 +437,18 @@ export default function ScanPage() {
                 {activeTab === "upload-certificate" && (
                   <div className="space-y-6">
                     <div className="rounded-lg border border-dashed border-white/10 bg-[#0b0b0e] px-6 py-12 text-center transition hover:border-emerald-400/30">
+                      <div>
+                        <label className="mb-3 block text-xs uppercase tracking-[0.2em] text-zinc-500">
+                          Scan Name
+                        </label>
+                        <input
+                          type="text"
+                          value={scanName}
+                          onChange={(e) => setScanName(e.target.value)}
+                          placeholder="Optional for single target/file, required for multiple"
+                          className="w-full rounded-md border border-white/10 bg-black px-4 py-3 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-emerald-400/50"
+                        />
+                      </div>
                       <input
                         type="file"
                         multiple
