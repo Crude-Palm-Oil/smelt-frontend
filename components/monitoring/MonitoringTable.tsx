@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import {
   type ScanRecord,
   type ScanStatus,
 } from "@/lib/mock-monitoring-data";
 import { timeAgo } from "@/lib/utils";
-import ScanDetailModal, { type ScanDetail } from "./ScanDetailModal";
 
 function statusBadge(status: ScanStatus) {
   if (status === "pass")
@@ -22,15 +22,21 @@ export default function MonitoringTable({
 }: {
   scans: ScanRecord[];
 }) {
+  const router = useRouter();
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<ScanDetail | null>(null);
 
   const filtered = scans.filter((s) => {
     if (filter !== "all" && s.status !== filter) return false;
     if (query && !s.name.toLowerCase().includes(query.toLowerCase())) return false;
     return true;
   });
+
+  // The backend returns scans sorted by scanned_at desc, so the latest is the
+  // first item. Used to flag whichever row is the most recent in the table.
+  const latestScanId = scans
+    .slice()
+    .sort((a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime())[0]?.id;
 
   const filterBtn = (value: Filter, label: string) => (
     <button
@@ -91,22 +97,25 @@ export default function MonitoringTable({
                 </td>
               </tr>
             ) : (
-              filtered.map((row) => (
+              filtered.map((row) => {
+                const isLatest = row.id === latestScanId;
+                return (
                 <tr
                   key={row.id}
-                  onClick={() =>
-                    setSelected({
-                      id: row.id,
-                      name: row.name,
-                      status: row.status,
-                      scannedAt: row.scannedAt,
-                      config: row.config,
-                    })
-                  }
-                  className="cursor-pointer border-b border-zinc-800/60 transition hover:bg-zinc-900/40 last:border-b-0"
+                  onClick={() => router.push(`/main/results/${row.id}`)}
+                  className={`cursor-pointer border-b border-zinc-800/60 transition hover:bg-zinc-900/40 last:border-b-0 ${
+                    isLatest ? "bg-emerald-500/5" : ""
+                  }`}
                 >
                   <td className="px-5 py-4">
-                    <p className="font-mono text-zinc-200">{row.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-mono text-zinc-200">{row.name}</p>
+                      {isLatest && (
+                        <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-mono font-medium uppercase tracking-widest text-emerald-400">
+                          Latest
+                        </span>
+                      )}
+                    </div>
                     <p className="font-mono text-[10px] text-zinc-600">{row.id}</p>
                   </td>
                   <td className="px-5 py-4 text-zinc-400" title={row.scannedAt}>
@@ -123,13 +132,12 @@ export default function MonitoringTable({
                     </span>
                   </td>
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
-
-      <ScanDetailModal scan={selected} onClose={() => setSelected(null)} />
     </section>
   );
 }

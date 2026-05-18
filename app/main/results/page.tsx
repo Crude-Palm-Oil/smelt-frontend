@@ -1,6 +1,6 @@
-import ResultsStats from "@/components/results/ResultsStats";
-import ResultsTable from "@/components/results/ResultsTable";
+import ResultsView from "@/components/results/ResultsView";
 import ScanFinishedToast from "@/components/results/ScanFinishedToast";
+import AutoRefresh from "@/components/ui/AutoRefresh";
 import { getFinishedScans } from "@/services/api";
 
 export const dynamic = "force-dynamic";
@@ -11,9 +11,9 @@ export default async function ResultsPage() {
   return (
     <div className="flex flex-col gap-8 p-8">
       <ScanFinishedToast />
+      <AutoRefresh />
 
-      <ResultsStats scans={scans} />
-      <ResultsTable scans={scans} />
+      <ResultsView scans={scans} />
     </div>
   );
 }
