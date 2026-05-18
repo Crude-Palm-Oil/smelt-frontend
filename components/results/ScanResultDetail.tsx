@@ -20,6 +20,7 @@ import {
   Eye,
   Download,
   Loader2,
+  Search,
 } from "lucide-react";
 import {
   type FinishedScan,
@@ -78,8 +79,35 @@ function lintStatusRank(status: Lint["status"]): number {
   }
 }
 
-function LintCard({ lint }: { lint: Lint }) {
-  const [expanded, setExpanded] = useState(false);
+// Severity ranking used to sort the per-rule findings *inside* a card.
+// Note this uses LintSeverity (which has `error`/`na`), distinct from
+// LintStatus (which uses `fail` instead of `error`).
+function findingSeverityRank(severity: LintSeverity): number {
+  switch (severity) {
+    case "fatal":
+      return 5;
+    case "error":
+      return 4;
+    case "warn":
+      return 3;
+    case "info":
+      return 2;
+    case "pass":
+      return 1;
+    case "na":
+      return 0;
+  }
+}
+
+function LintCard({
+  lint,
+  expanded,
+  onToggle,
+}: {
+  lint: Lint;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
   // Default to actionable findings (warn/error/fatal) — there are typically
   // hundreds of NA/pass entries that drown out what the user actually needs
   // to look at. Per usability feedback: "UI/UX more simplified".
@@ -89,13 +117,21 @@ function LintCard({ lint }: { lint: Lint }) {
 
   const { summary, findings } = lint.lintResults;
   const issueCount = summary.fatal + summary.error + summary.warn;
-  const visibleFindings = findings.filter((f) => {
-    if (severityFilter === "all") return true;
-    if (severityFilter === "issues") {
-      return f.severity === "warn" || f.severity === "error" || f.severity === "fatal";
-    }
-    return f.severity === severityFilter;
-  });
+  // Sort findings worst-first (fatal → error → warn → info → pass → na), with
+  // rule name as the tiebreaker so the order is stable across reloads.
+  const visibleFindings = findings
+    .filter((f) => {
+      if (severityFilter === "all") return true;
+      if (severityFilter === "issues") {
+        return f.severity === "warn" || f.severity === "error" || f.severity === "fatal";
+      }
+      return f.severity === severityFilter;
+    })
+    .sort((a, b) => {
+      const diff = findingSeverityRank(b.severity) - findingSeverityRank(a.severity);
+      if (diff !== 0) return diff;
+      return a.rule.localeCompare(b.rule);
+    });
 
   const statusBadge = (() => {
     switch (lint.status) {
@@ -135,7 +171,7 @@ function LintCard({ lint }: { lint: Lint }) {
   return (
     <div className="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/30">
       <button
-        onClick={() => setExpanded(!expanded)}
+        onClick={onToggle}
         className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-zinc-900/60"
       >
         {expanded ? (
@@ -484,6 +520,38 @@ export default function ScanResultDetail({
     return (a.targetName ?? "").localeCompare(b.targetName ?? "");
   });
 
+  // Per-cert search + controlled expand state for Expand-all / Collapse-all.
+  const [searchQuery, setSearchQuery] = useState("");
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  const visibleLints = searchQuery
+    ? sortedLints.filter((lint) => {
+        const q = searchQuery.toLowerCase();
+        return (
+          lint.targetName.toLowerCase().includes(q) ||
+          lint.certSubject.toLowerCase().includes(q) ||
+          lint.certIssuer.toLowerCase().includes(q)
+        );
+      })
+    : sortedLints;
+
+  const allVisibleExpanded =
+    visibleLints.length > 0 &&
+    visibleLints.every((l) => expandedIds.has(l.id));
+
+  const toggleOne = (id: string) => {
+    setExpandedIds((prev: Set<string>) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const expandAll = () =>
+    setExpandedIds(new Set(visibleLints.map((l) => l.id)));
+  const collapseAll = () => setExpandedIds(new Set());
+
   return (
     <div className="flex flex-col gap-6 p-8">
       <nav className="flex items-center gap-2 font-mono text-xs">
@@ -605,25 +673,59 @@ export default function ScanResultDetail({
       </section>
 
       <section>
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-sm font-mono font-semibold uppercase tracking-widest text-zinc-100">
               Lint Results
             </h2>
             <p className="mt-0.5 text-xs text-zinc-500">
-              {lints.length} certificate{lints.length !== 1 ? "s" : ""} · click to expand findings
+              {visibleLints.length === sortedLints.length
+                ? `${sortedLints.length} certificate${sortedLints.length !== 1 ? "s" : ""}`
+                : `${visibleLints.length} of ${sortedLints.length} certificate${sortedLints.length !== 1 ? "s" : ""}`}
+              {" · click to expand findings"}
             </p>
           </div>
+
+          {lints.length > 0 && (
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600" />
+                <input
+                  type="text"
+                  placeholder="Search host, subject, issuer..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="rounded-lg border border-zinc-800 bg-zinc-900/50 py-2 pl-9 pr-4 text-xs text-zinc-200 placeholder-zinc-600 outline-none transition focus:border-zinc-600 sm:w-72"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={allVisibleExpanded ? collapseAll : expandAll}
+                className="rounded-lg border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-xs font-mono text-zinc-300 transition hover:border-zinc-700 hover:bg-zinc-900/80"
+              >
+                {allVisibleExpanded ? "Collapse all" : "Expand all"}
+              </button>
+            </div>
+          )}
         </div>
 
         {lints.length === 0 ? (
           <div className="rounded-xl border border-dashed border-zinc-800 px-4 py-12 text-center">
             <p className="font-mono text-xs text-zinc-600">No lint data available for this scan</p>
           </div>
+        ) : visibleLints.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-zinc-800 px-4 py-12 text-center">
+            <p className="font-mono text-xs text-zinc-600">No certificates match &ldquo;{searchQuery}&rdquo;</p>
+          </div>
         ) : (
           <div className="space-y-2">
-            {sortedLints.map((lint) => (
-              <LintCard key={lint.id} lint={lint} />
+            {visibleLints.map((lint) => (
+              <LintCard
+                key={lint.id}
+                lint={lint}
+                expanded={expandedIds.has(lint.id)}
+                onToggle={() => toggleOne(lint.id)}
+              />
             ))}
           </div>
         )}

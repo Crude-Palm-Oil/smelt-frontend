@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Terminal, CheckCircle2 } from "lucide-react";
 import { type OngoingScan } from "@/lib/mock-monitoring-data";
-import ScanDetailModal, { type ScanDetail } from "./ScanDetailModal";
 
 function formatElapsed(startedAtMs: number, now: number): string {
   const diff = Math.floor((now - startedAtMs) / 1000);
@@ -59,7 +59,7 @@ export default function OngoingScans({
 }: {
   scans: OngoingScan[];
 }) {
-  const [selected, setSelected] = useState<ScanDetail | null>(null);
+  const router = useRouter();
   const [anchor, setAnchor] = useState<number | null>(null);
   const [now, setNow] = useState<number | null>(null);
 
@@ -146,18 +146,7 @@ export default function OngoingScans({
               scan={scan}
               anchor={anchor}
               now={now}
-              onClick={() =>
-                setSelected({
-                  id: scan.id,
-                  name: scan.name,
-                  status: "running",
-                  startedAt:
-                    anchor !== null
-                      ? new Date(anchor - scan.startedAtOffsetSec * 1000).toISOString()
-                      : undefined,
-                  config: scan.config,
-                })
-              }
+              onClick={() => router.push(`/main/results/${scan.id}`)}
             />
           ))}
 
@@ -167,8 +156,6 @@ export default function OngoingScans({
           </div>
         </div>
       </div>
-
-      <ScanDetailModal scan={selected} onClose={() => setSelected(null)} />
     </section>
   );
 }
