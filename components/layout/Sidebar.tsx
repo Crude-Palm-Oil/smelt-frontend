@@ -9,16 +9,21 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
 
-const handleLogout = () => {
-  Cookies.remove("token");
-  router.push("/auth");
-};
+  const handleLogout = () => {
+    Cookies.remove("token");
+    router.push("/auth");
+  };
+
   return (
     <aside className="flex h-screen w-64 flex-col justify-between border-r border-zinc-800 bg-[#0c0c0d] px-4 py-5">
       <div>
         <div className="mb-10 px-2">
-          <p className="text-lg font-semibold tracking-widest text-emerald-400">{APP_NAME}</p>
-          <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">TLS Compliance</p>
+          <p className="text-lg font-semibold tracking-widest text-emerald-400">
+            {APP_NAME}
+          </p>
+          <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">
+            TLS Compliance
+          </p>
         </div>
 
         <nav className="space-y-2">
@@ -42,14 +47,15 @@ const handleLogout = () => {
               </Link>
             );
           })}
-            <button
-  onClick={handleLogout}
-  className="rounded-md bg-emerald-500/10 px-4 py-2 text-emerald-400"
->
-  Logout
-</button>
         </nav>
       </div>
+
+      <button
+        onClick={handleLogout}
+        className="flex w-full items-center rounded-xl px-4 py-3 text-left text-sm text-zinc-500 transition hover:bg-red-500/10 hover:text-red-400"
+      >
+        Logout
+      </button>
     </aside>
   );
 }
