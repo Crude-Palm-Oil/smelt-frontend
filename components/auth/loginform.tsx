@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { login } from "@/services/api";
-
+import Cookies from "js-cookie";
 export function LoginForm() {
   const router = useRouter();
 
@@ -14,25 +14,25 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-  
-    try {
-      const data = await login({ email, password });
-  
-      localStorage.setItem("token", data.access_token);
-  
-      localStorage.setItem("user", JSON.stringify(data.user));
-  
-      router.push("/main/dashboard");
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError("");
+  setLoading(true);
+
+  try {
+    const result = await login({ email, password });
+
+    Cookies.set("token", result.access_token, {
+      expires: 1,
+    });
+
+    router.push("/main/dashboard");
+  } catch (err: any) {
+    setError(err.message || "Login failed");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="w-full max-w-md bg-card border border-border rounded-2xl shadow-lg p-8">

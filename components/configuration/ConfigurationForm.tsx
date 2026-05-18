@@ -61,7 +61,6 @@ export default function ConfigurationForm() {
 
   const [domain, setDomain] = useState("");
   const [policies, setPolicies] = useState<string[]>([]);
-  const [certs, setCerts] = useState<string[]>([]);
 
   const [loadingConfig, setLoadingConfig] = useState(false);
 
@@ -83,31 +82,36 @@ export default function ConfigurationForm() {
     }
   };
 
-  // ✅ LOAD CONFIG
-  const loadConfig = async (domain: string) => {
-    if (!domain) return;
+const loadConfig = async (domain: string) => {
+  if (!domain) return;
 
-    try {
-      setLoadingConfig(true);
+  try {
+    setLoadingConfig(true);
 
-      const res = await fetch(`http://localhost:8000/config/${domain}`);
-      const data = await res.json();
+    console.log("FETCHING:", domain);
 
-      if (data.status === "found") {
-        setPolicies(data.data.policies || []);
-        setCerts(data.data.certs || []);
-      } else {
-        setPolicies([]);
-        setCerts([]);
-      }
-    } catch (err) {
-      console.error("Load config failed:", err);
-    } finally {
-      setLoadingConfig(false);
+    const res = await fetch(`http://localhost:8000/config/${domain}`);
+
+    console.log("STATUS:", res.status);
+
+    const text = await res.text();
+
+    console.log("RAW:", text);
+
+    const data = JSON.parse(text);
+
+    if (data.status === "found") {
+      setPolicies(data.data.policies || []);
+    } else {
+      setPolicies([]);
     }
-  };
+  } catch (err) {
+    console.error("LOAD ERROR:", err);
+  } finally {
+    setLoadingConfig(false);
+  }
+};
 
-  // ✅ AUTO LOAD WITH DEBOUNCE
   useEffect(() => {
     if (!domain) return;
 
@@ -117,27 +121,40 @@ export default function ConfigurationForm() {
 
     return () => clearTimeout(timeout);
   }, [domain]);
+const handleSave = async () => {
+  try {
+    const res = await fetch("http://localhost:8000/config", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        domain,
+        policies,
+      }),
+    });
 
-  // ✅ SAVE CONFIG
-  const handleSave = async () => {
-    try {
-      const res = await fetch("http://localhost:8000/config", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ domain, policies, certs }),
-      });
+    console.log("STATUS:", res.status);
 
-      const data = await res.json();
-      console.log(data);
+    const text = await res.text();
 
-      alert("Configuration saved");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to save config");
+    console.log("RESPONSE:", text);
+
+    if (!res.ok) {
+      throw new Error(text);
     }
-  };
+
+    alert("Configuration saved");
+  } catch (err) {
+    console.error("SAVE ERROR:", err);
+
+    if (err instanceof Error) {
+      alert(err.message);
+    } else {
+      alert("Unknown error");
+    }
+  }
+};
 
   return (
     <div className="min-h-screen bg-[#050507] text-zinc-100">
@@ -168,10 +185,9 @@ export default function ConfigurationForm() {
             />
           </div>
 
-          {/* Content */}
+
           <div className="grid grid-cols-1 gap-6">
 
-            {/* DOMAIN */}
             {activeTab === "domain" && (
               <Card
                 title="Target Domain"
@@ -218,7 +234,6 @@ export default function ConfigurationForm() {
               </Card>
             )}
 
-            {/* SAVE BUTTON */}
             <div className="flex justify-end">
               <button
                 onClick={handleSave}

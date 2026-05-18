@@ -8,6 +8,7 @@ import type {
   LintSeverity,
   LintStatus,
 } from "@/lib/mock-results-data";
+import Cookies from "js-cookie";
 
 const ANALYSIS_API = process.env.NEXT_PUBLIC_ANALYSIS_API_URL ?? "http://localhost:8080";
 // Strip a trailing `/api` so callers can always write `${REPORT_API}/api/reports/...`
@@ -294,4 +295,20 @@ export async function getMe() {
   if (!res.ok) throw new Error("Not authenticated");
 
   return res.json();
+}
+
+export async function authenticatedFetch(
+  endpoint: string,
+  options: RequestInit = {}
+) {
+  const token = Cookies.get("token");
+
+  return fetch(`${BASE_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      ...(options.headers || {}),
+    },
+  });
 }
