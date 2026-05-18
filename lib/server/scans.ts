@@ -50,3 +50,24 @@ export async function scanTargets(payload: {
     };
   }
 }
+
+export async function uploadAndScanDnsZone(formData: FormData) {
+  try {
+    const res = await fetch(`${API_BASE_URL}/integration/scan-dns-zone`, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text);
+    }
+
+    return await res.json();
+  } catch (error: any) {
+    return {
+      error: true,
+      message: error.message || "DNS zone scan failed",
+    };
+  }
+}

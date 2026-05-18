@@ -2,7 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { Globe, Upload, Search, Plus, Server } from "lucide-react";
-import { uploadAndScanCertificates, scanTargets } from "@/lib/server/scans";
+import {
+  uploadAndScanCertificates,
+  scanTargets,
+  uploadAndScanDnsZone,
+} from "@/lib/server/scans";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_SCAN_URL;
 
@@ -65,6 +69,7 @@ export default function ScanPage() {
   const [files, setFiles] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [dnsFile, setDnsFile] = useState<File | null>(null);
 
   const [targetsInput, setTargetsInput] = useState("");
 
@@ -106,6 +111,40 @@ export default function ScanPage() {
     } catch (err) {
       console.error(err);
       alert("Upload failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDnsFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    setDnsFile(e.target.files[0]);
+  };
+
+  const handleDnsZoneScan = async () => {
+    if (!dnsFile) {
+      alert("Please upload a DNS zone file");
+      return;
+    }
+
+    setLoading(true);
+
+    const formData = new FormData();
+    formData.append("zone_file", dnsFile);
+
+    try {
+      const data = await uploadAndScanDnsZone(formData);
+
+      if (data?.error) {
+        alert(data.message);
+        return;
+      }
+
+      setResult(data);
+      window.location.assign("/main/results?scan=finished");
+    } catch (err) {
+      console.error(err);
+      alert("DNS zone scan failed");
     } finally {
       setLoading(false);
     }
@@ -192,16 +231,6 @@ export default function ScanPage() {
 
   return (
     <div className="min-h-screen bg-[#050507] text-zinc-100">
-      {/* <div className="border-b border-white/8 bg-[#0a0a0d] px-8 py-5">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold tracking-[0.08em] text-zinc-100">
-            Scan
-          </h1>
-
-          
-        </div>
-      </div> */}
-
       <div className="px-8 py-10">
         <div className="mx-auto max-w-[1400px]">
           <div className="mb-8">
@@ -294,33 +323,75 @@ export default function ScanPage() {
 
                 {activeTab === "dns-records" && (
                   <div className="space-y-6">
-                    <div className="rounded-lg border border-dashed border-white/10 bg-[#0b0b0e] px-6 py-16 text-center">
-                      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/[0.02]">
-                        <Upload className="h-6 w-6 text-zinc-400" />
-                      </div>
-                      <p className="mt-5 text-lg text-zinc-300">
-                        Drop DNS zone file here or click to browse
-                      </p>
-                      <p className="mt-2 text-sm text-zinc-500">
-                        Supports BIND zone files (.zone, .db, .txt)
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className="mb-3 block text-xs uppercase tracking-[0.2em] text-zinc-500">
-                        Filter Record Types
-                      </label>
+                    <div className="rounded-lg border border-dashed border-white/10 bg-[#0b0b0e] px-6 py-12 text-center transition hover:border-emerald-400/30">
                       <input
-                        type="text"
-                        defaultValue="A, AAAA, CNAME"
-                        className="w-full rounded-md border border-white/10 bg-black px-4 py-3 text-sm text-zinc-200 outline-none focus:border-emerald-400/50"
+                        type="file"
+                        accept=".zone,.db,.txt"
+                        onChange={handleDnsFileChange}
+                        className="hidden"
+                        id="dnsZoneUpload"
                       />
+
+                      <label htmlFor="dnsZoneUpload" className="cursor-pointer">
+                        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/[0.02]">
+                          <Upload className="h-6 w-6 text-zinc-400" />
+                        </div>
+
+                        <p className="mt-5 text-lg text-zinc-300">
+                          Click to upload DNS zone file
+                        </p>
+
+                        <p className="mt-2 text-sm text-zinc-500">
+                          Supports BIND zone files (.zone, .db, .txt)
+                        </p>
+                      </label>
                     </div>
 
-                    <button className="inline-flex items-center gap-2 rounded-md bg-emerald-400 px-5 py-3 text-sm font-medium text-black transition hover:bg-emerald-300">
-                      <Search className="h-4 w-4" />
-                      Parse &amp; Scan
-                    </button>
+                    {dnsFile && (
+                      <div className="rounded-lg border border-white/10 bg-black/40 px-4 py-3">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm text-zinc-300">
+                              {dnsFile.name}
+                            </p>
+                            <p className="text-xs text-zinc-600">
+                              {(dnsFile.size / 1024).toFixed(2)} KB
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setDnsFile(null)}
+                            className="text-xs text-red-400 transition hover:text-red-300"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="sticky bottom-0 z-10 flex items-center justify-between rounded-xl border border-white/10 bg-[#0a0a0d]/95 p-4 backdrop-blur">
+                      <div>
+                        <p className="text-sm text-zinc-300">
+                          Ready to parse & scan
+                        </p>
+                        <p className="text-xs text-zinc-500">
+                          {dnsFile
+                            ? "1 DNS zone file queued"
+                            : "No DNS zone file selected"}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleDnsZoneScan}
+                        disabled={loading || !dnsFile}
+                        className="inline-flex items-center gap-2 rounded-md bg-emerald-400 px-5 py-3 text-sm font-medium text-black transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Search className="h-4 w-4" />
+                        {loading ? "Scanning..." : "Parse & Scan"}
+                      </button>
+                    </div>
                   </div>
                 )}
 
