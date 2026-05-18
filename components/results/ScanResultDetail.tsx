@@ -62,6 +62,22 @@ function severityClass(severity: LintSeverity) {
   }
 }
 
+// Severity ranking used to sort the per-cert cards worst-first.
+function lintStatusRank(status: Lint["status"]): number {
+  switch (status) {
+    case "fatal":
+      return 5;
+    case "fail":
+      return 4;
+    case "warn":
+      return 3;
+    case "info":
+      return 2;
+    case "pass":
+      return 1;
+  }
+}
+
 function LintCard({ lint }: { lint: Lint }) {
   const [expanded, setExpanded] = useState(false);
   // Default to actionable findings (warn/error/fatal) — there are typically
@@ -459,6 +475,15 @@ export default function ScanResultDetail({
       .slice(0, 3);
   })();
 
+  // Render cards worst-first (fatal → fail → warn → info → pass) so the operator
+  // triages from the top. Tiebreak by target name to keep the order stable across
+  // reloads — the Go service returns rows in S3-fetch-completion order otherwise.
+  const sortedLints = [...lints].sort((a, b) => {
+    const rankDiff = lintStatusRank(b.status) - lintStatusRank(a.status);
+    if (rankDiff !== 0) return rankDiff;
+    return (a.targetName ?? "").localeCompare(b.targetName ?? "");
+  });
+
   return (
     <div className="flex flex-col gap-6 p-8">
       <nav className="flex items-center gap-2 font-mono text-xs">
@@ -597,7 +622,7 @@ export default function ScanResultDetail({
           </div>
         ) : (
           <div className="space-y-2">
-            {lints.map((lint) => (
+            {sortedLints.map((lint) => (
               <LintCard key={lint.id} lint={lint} />
             ))}
           </div>
