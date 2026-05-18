@@ -8,19 +8,6 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_SCAN_URL;
 
 type ScanTab = "domain-ip" | "dns-records" | "upload-certificate";
 
-type RecentScan = {
-  id: number;
-  name: string;
-  type: "domain" | "dns" | "upload";
-  time: string;
-};
-
-const recentScans: RecentScan[] = [
-  { id: 1, name: "api.example.com", type: "domain", time: "2 hours ago" },
-  { id: 2, name: "zone-export.db", type: "dns", time: "yesterday" },
-  { id: 3, name: "wildcard.pem", type: "upload", time: "3 days ago" },
-];
-
 function TabButton({
   active,
   label,
@@ -113,6 +100,7 @@ export default function ScanPage() {
         return;
       }
 
+      window.location.assign("/main/results");
       setResult(data);
       setShowSuccess(true);
     } catch (err) {
@@ -185,6 +173,7 @@ export default function ScanPage() {
         return;
       }
 
+      window.location.assign("/main/results");
       setResult(data);
       setShowSuccess(true);
     } catch (err) {
@@ -337,7 +326,7 @@ export default function ScanPage() {
 
                 {activeTab === "upload-certificate" && (
                   <div className="space-y-6">
-                    <div className="rounded-lg border border-dashed border-white/10 bg-[#0b0b0e] px-6 py-16 text-center">
+                    <div className="rounded-lg border border-dashed border-white/10 bg-[#0b0b0e] px-6 py-12 text-center transition hover:border-emerald-400/30">
                       <input
                         type="file"
                         multiple
@@ -355,60 +344,84 @@ export default function ScanPage() {
                         <p className="mt-5 text-lg text-zinc-300">
                           Click to upload certificates
                         </p>
+
                         <p className="mt-2 text-sm text-zinc-500">
-                          {files.length > 0
-                            ? `${files.length} files selected`
-                            : "Supports .pem, .crt, .cer, .der, .p7b"}
+                          Supports .pem, .crt, .cer, .der, .p7b
                         </p>
                       </label>
                     </div>
 
-                    {files.map((f, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between border-b border-white/10 py-2"
-                      >
-                        <span>{f.name}</span>
+                    {files.length > 0 && (
+                      <div className="rounded-lg border border-white/10 bg-black/40">
+                        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+                          <div>
+                            <p className="text-sm font-medium text-zinc-200">
+                              Selected Certificates
+                            </p>
+                            <p className="text-xs text-zinc-500">
+                              {files.length} files selected
+                            </p>
+                          </div>
 
-                        <button
-                          onClick={() => removeFile(i)}
-                          className="text-red-400 hover:text-red-300 text-xs"
-                        >
-                          Remove
-                        </button>
+                          <button
+                            onClick={() => setFiles([])}
+                            className="text-xs text-red-400 hover:text-red-300"
+                          >
+                            Clear All
+                          </button>
+                        </div>
+
+                        <div className="max-h-[300px] overflow-y-auto">
+                          {files.map((f, i) => (
+                            <div
+                              key={i}
+                              className="flex items-center justify-between border-b border-white/5 px-4 py-3"
+                            >
+                              <div className="min-w-0">
+                                <p className="truncate text-sm text-zinc-300">
+                                  {f.name}
+                                </p>
+
+                                <p className="text-xs text-zinc-600">
+                                  {(f.size / 1024).toFixed(2)} KB
+                                </p>
+                              </div>
+
+                              <button
+                                onClick={() => removeFile(i)}
+                                className="ml-4 text-xs text-red-400 hover:text-red-300"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    ))}
+                    )}
 
-                    <button
-                      onClick={handleUpload}
-                      disabled={loading}
-                      className="inline-flex items-center gap-2 rounded-md bg-emerald-400 px-5 py-3 text-sm font-medium text-black transition hover:bg-emerald-300 disabled:opacity-50"
-                    >
-                      <Search className="h-4 w-4" />
-                      {loading ? "Processing..." : "Analyse Certificates"}
-                    </button>
+                    <div className="sticky bottom-0 z-10 flex items-center justify-between rounded-xl border border-white/10 bg-[#0a0a0d]/95 p-4 backdrop-blur">
+                      <div>
+                        <p className="text-sm text-zinc-300">
+                          Ready to analyse
+                        </p>
+
+                        <p className="text-xs text-zinc-500">
+                          {files.length} certificate files queued
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={handleUpload}
+                        disabled={loading || files.length === 0}
+                        className="inline-flex items-center gap-2 rounded-md bg-emerald-400 px-5 py-3 text-sm font-medium text-black transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <Search className="h-4 w-4" />
+
+                        {loading ? "Processing..." : "Analyse Certificates"}
+                      </button>
+                    </div>
                   </div>
                 )}
-              </Card>
-              <Card title="RECENT SCANS" subtitle="Previous scan history">
-                <div className="divide-y divide-white/8">
-                  {recentScans.map((scan) => (
-                    <div
-                      key={scan.id}
-                      className="flex items-center justify-between py-5"
-                    >
-                      <div>
-                        <p className="text-base text-emerald-300">
-                          {scan.name}
-                        </p>
-                        <p className="mt-1 text-xs uppercase tracking-[0.16em] text-zinc-600">
-                          {scan.type}
-                        </p>
-                      </div>
-                      <span className="text-sm text-zinc-500">{scan.time}</span>
-                    </div>
-                  ))}
-                </div>
               </Card>
             </div>
           </div>
