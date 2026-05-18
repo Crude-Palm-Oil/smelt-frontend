@@ -25,6 +25,7 @@ export async function uploadAndScanCertificates(formData: FormData) {
 }
 
 export async function scanTargets(payload: {
+  name: string;
   type: "target";
   targets: any[];
 }) {
