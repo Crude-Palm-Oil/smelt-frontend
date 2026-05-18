@@ -88,7 +88,13 @@ function LintBar({ scan }: { scan: FinishedScan }) {
   );
 }
 
-export default function ResultsTable({ scans }: { scans: FinishedScan[] }) {
+export default function ResultsTable({
+  scans,
+  severityFilter,
+}: {
+  scans: FinishedScan[];
+  severityFilter?: "pass" | "info" | "warn" | "fail" | "fatal" | null;
+}) {
   const router = useRouter();
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
@@ -96,12 +102,40 @@ export default function ResultsTable({ scans }: { scans: FinishedScan[] }) {
   const hasIssues = (s: FinishedScan) =>
     s.lintsFatal > 0 || s.lintsFail > 0 || s.lintsWarn > 0;
 
+  // When a stats card is active, only show scans that contributed to that
+  // severity bucket. `pass` matches scans that have at least one passing lint.
+  const matchesSeverity = (s: FinishedScan) => {
+    switch (severityFilter) {
+      case "pass":
+        return s.lintsPass > 0;
+      case "info":
+        return s.lintsInfo > 0;
+      case "warn":
+        return s.lintsWarn > 0;
+      case "fail":
+        return s.lintsFail > 0;
+      case "fatal":
+        return s.lintsFatal > 0;
+      default:
+        return true;
+    }
+  };
+
   const filtered = scans.filter((s) => {
     if (filter === "clean" && hasIssues(s)) return false;
     if (filter === "issues" && !hasIssues(s)) return false;
     if (query && !s.name.toLowerCase().includes(query.toLowerCase())) return false;
+    if (!matchesSeverity(s)) return false;
     return true;
   });
+
+  // The latest scan in the full dataset — used to flag whichever row
+  // shows up at the top so the user can spot a just-finished scan.
+  const latestScanId = scans
+    .slice()
+    .sort(
+      (a, b) => new Date(b.scannedAt).getTime() - new Date(a.scannedAt).getTime(),
+    )[0]?.id;
 
   const filterBtn = (value: Filter, label: string) => (
     <button
@@ -166,14 +200,25 @@ export default function ResultsTable({ scans }: { scans: FinishedScan[] }) {
                 </td>
               </tr>
             ) : (
-              filtered.map((row) => (
+              filtered.map((row) => {
+                const isLatest = row.id === latestScanId;
+                return (
                 <tr
                   key={row.id}
                   onClick={() => router.push(`/main/results/${row.id}`)}
-                  className="cursor-pointer border-b border-zinc-800/60 transition hover:bg-zinc-900/40 last:border-b-0"
+                  className={`cursor-pointer border-b border-zinc-800/60 transition hover:bg-zinc-900/40 last:border-b-0 ${
+                    isLatest ? "bg-emerald-500/5" : ""
+                  }`}
                 >
                   <td className="px-5 py-4">
-                    <p className="font-mono text-zinc-200">{row.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-mono text-zinc-200">{row.name}</p>
+                      {isLatest && (
+                        <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-mono font-medium uppercase tracking-widest text-emerald-400">
+                          Latest
+                        </span>
+                      )}
+                    </div>
                     <p className="font-mono text-[10px] text-zinc-600">{row.id.slice(0, 8)}</p>
                   </td>
                   <td className="px-5 py-4 text-zinc-400" title={row.scannedAt}>
@@ -190,7 +235,8 @@ export default function ResultsTable({ scans }: { scans: FinishedScan[] }) {
                     <ChevronRight size={14} />
                   </td>
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>

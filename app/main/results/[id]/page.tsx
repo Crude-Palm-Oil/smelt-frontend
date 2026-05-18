@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import ScanResultDetail from "@/components/results/ScanResultDetail";
+import AutoRefresh from "@/components/ui/AutoRefresh";
 import { getFinishedScans, getLintsForScan, getReports } from "@/services/api";
 
 export const dynamic = "force-dynamic";
@@ -22,5 +23,10 @@ export default async function ScanResultPage({
 
   const report = reports.find((r: any) => r.id === id)
 
-  return <ScanResultDetail scan={scan} lints={lints} initialReportStatus={report?.pdf_status ?? "Pending"} />;
+  return (
+    <>
+      <AutoRefresh />
+      <ScanResultDetail scan={scan!} lints={lints} initialReportStatus={report?.pdf_status ?? "Pending"} />
+    </>
+  );
 }

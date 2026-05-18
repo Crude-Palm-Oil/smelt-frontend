@@ -2,6 +2,7 @@ import StatsBar from "@/components/monitoring/StatsBar";
 import OngoingScans from "@/components/monitoring/OngoingScans";
 import AlertHistoryTable from "@/components/monitoring/AlertHistoryTable";
 import MonitoringTable from "@/components/monitoring/MonitoringTable";
+import AutoRefresh from "@/components/ui/AutoRefresh";
 import {
   getOngoingScans,
   getFailedScans,
@@ -19,6 +20,7 @@ export default async function MonitoringPage() {
 
   return (
     <div className="flex flex-col gap-8 p-8">
+      <AutoRefresh />
       <StatsBar
         allScans={history}
         ongoingScans={ongoing}
