@@ -1,12 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { APP_NAME, NAV_ITEMS } from "@/lib/constants";
+import Cookies from "js-cookie";
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
 
+const handleLogout = () => {
+  Cookies.remove("token");
+  router.push("/auth");
+};
   return (
     <aside className="flex h-screen w-64 flex-col justify-between border-r border-zinc-800 bg-[#0c0c0d] px-4 py-5">
       <div>
@@ -36,6 +42,12 @@ export default function Sidebar() {
               </Link>
             );
           })}
+            <button
+  onClick={handleLogout}
+  className="rounded-md bg-emerald-500/10 px-4 py-2 text-emerald-400"
+>
+  Logout
+</button>
         </nav>
       </div>
     </aside>

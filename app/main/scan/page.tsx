@@ -93,6 +93,7 @@ export default function ScanPage() {
     });
 
     try {
+
       const data = await uploadAndScanCertificates(formData);
 
       if (data?.error) {
