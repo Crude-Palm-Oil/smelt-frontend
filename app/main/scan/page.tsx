@@ -100,7 +100,7 @@ export default function ScanPage() {
         return;
       }
 
-      window.location.assign("/main/results");
+      window.location.assign("/main/results?scan=finished");
       setResult(data);
       setShowSuccess(true);
     } catch (err) {
@@ -173,7 +173,7 @@ export default function ScanPage() {
         return;
       }
 
-      window.location.assign("/main/results");
+      window.location.assign("/main/results?scan=finished");
       setResult(data);
       setShowSuccess(true);
     } catch (err) {
