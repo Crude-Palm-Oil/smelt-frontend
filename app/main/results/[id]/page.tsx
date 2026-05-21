@@ -1,32 +1,15 @@
-import { notFound } from "next/navigation";
-import ScanResultDetail from "@/components/results/ScanResultDetail";
-import AutoRefresh from "@/components/ui/AutoRefresh";
-import { getFinishedScans, getLintsForScan, getReports } from "@/services/api";
+import { permanentRedirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export default async function ScanResultPage({
+// Legacy route shim. The scan detail moved to `/main/results/scan/[id]`
+// when the Results page gained Targets and Certificates tabs. Anything
+// still linking at the old path (the scan-finished toast handoff,
+// existing bookmarks, history entries that pre-date the refactor) gets
+// transparently redirected.
+export default async function LegacyScanRedirect({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-
-  const [scans, lints, reports] = await Promise.all([
-    getFinishedScans(),
-    getLintsForScan(id),
-    getReports(),
-  ]);
-
-  const scan = scans.find((s) => s.id === id);
-  if (!scan) notFound();
-
-  const report = reports.find((r: any) => r.id === id)
-
-  return (
-    <>
-      <AutoRefresh />
-      <ScanResultDetail scan={scan!} lints={lints} initialReportStatus={report?.pdf_status ?? "Pending"} />
-    </>
-  );
+  permanentRedirect(`/main/results/scan/${id}`);
 }

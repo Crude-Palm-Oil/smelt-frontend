@@ -46,6 +46,56 @@ export type FinishedScan = {
   lintsFatal: number;
 };
 
+// Per-target history view. Identity is (hostname, ipAddress, port) — multiple
+// `targets` rows that share this tuple are merged at the API layer.
+export type TargetSummary = {
+  hostname: string | null;
+  ipAddress: string | null;
+  port: number;
+  commonName: string | null;
+  issuerCn: string | null;
+  firstScannedAt: string | null;
+  lastScannedAt: string | null;
+  scanCount: number;
+  worstStatus: LintStatus | "na";
+  lintsPass: number;
+  lintsInfo: number;
+  lintsWarn: number;
+  lintsFail: number;
+  lintsFatal: number;
+};
+
+// Per-certificate history view. Identity is the Subject CN — multiple cert
+// binaries (fingerprints) with the same CN aggregate into one row. `certCount`
+// reports how many distinct certs share this CN; `notAfter` is the soonest
+// expiry across that set.
+export type CertificateSummary = {
+  commonName: string;
+  issuerCn: string | null;
+  notAfter: string | null;
+  certCount: number;
+  firstScannedAt: string | null;
+  lastScannedAt: string | null;
+  scanCount: number;
+  worstStatus: LintStatus | "na";
+  lintsPass: number;
+  lintsInfo: number;
+  lintsWarn: number;
+  lintsFail: number;
+  lintsFatal: number;
+};
+
+// One row on a target or certificate history timeline.
+export type HistoryItem = {
+  lintId: string;
+  scanId: string;
+  scanName: string;
+  scannedAt: string;
+  status: LintStatus | "na";
+  commonName: string | null;
+  issuerCn: string | null;
+};
+
 const makeFinding = (
   rule: string,
   severity: LintSeverity,
