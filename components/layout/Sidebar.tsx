@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { ShieldCheck } from "lucide-react";
 import { APP_NAME, NAV_ITEMS } from "@/lib/constants";
 import Cookies from "js-cookie";
 
@@ -17,13 +18,22 @@ export default function Sidebar() {
   return (
     <aside className="flex h-screen w-64 flex-col justify-between border-r border-zinc-800 bg-[#0c0c0d] px-4 py-5">
       <div>
-        <div className="mb-10 px-2">
-          <p className="text-lg font-semibold tracking-widest text-emerald-400">
-            {APP_NAME}
-          </p>
-          <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">
-            TLS Compliance
-          </p>
+        <div className="mb-10">
+          <div className="flex items-center gap-3 px-2">
+            <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 ring-1 ring-inset ring-emerald-500/30">
+              <ShieldCheck className="h-4 w-4 text-emerald-400" />
+              <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-mono text-base font-semibold uppercase tracking-[0.22em] leading-none text-emerald-400">
+                {APP_NAME}
+              </p>
+              <p className="mt-1.5 font-mono text-[9px] uppercase tracking-[0.3em] leading-none text-zinc-500">
+                TLS · Compliance
+              </p>
+            </div>
+          </div>
+          <div className="mx-2 mt-5 h-px bg-gradient-to-r from-emerald-500/40 via-zinc-800 to-transparent" />
         </div>
 
         <nav className="space-y-2">
