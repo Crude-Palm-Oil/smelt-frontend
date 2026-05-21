@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Settings, ShieldCheck } from "lucide-react";
+import { saveConfiguration } from "@/lib/server/config";
 
 type ConfigTab = "domain" | "policies";
 
@@ -230,46 +231,24 @@ export default function ConfigurationForm() {
 
 const handleSave = async () => {
   try {
-    const token = localStorage.getItem("token");
-
-    const res = await fetch("http://backend:8000/config", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        domain,
-        policies: [
-          "Expiration Check",
-          "Issuer Validation",
-        ],
-        expiry_warning_days: expiryWarningDays,
-        issuer,
-        allow_tls_1_2: allowTLS12,
-        cipher_suites: cipherSuites,
-      }),
+    const response = await saveConfiguration({
+      domain,
+      policies: ["Expiration Check", "Issuer Validation"],
+      expiry_warning_days: expiryWarningDays,
+      issuer,
+      allow_tls_1_2: allowTLS12,
+      cipher_suites: cipherSuites,
     });
 
-    console.log("STATUS:", res.status);
-
-    const text = await res.text();
-
-    console.log("RESPONSE:", text);
-
-    if (!res.ok) {
-      throw new Error(text);
+    if (!response.success) {
+      alert(response.message);
+      return;
     }
 
     alert("Configuration saved");
   } catch (err) {
     console.error("SAVE ERROR:", err);
-
-    if (err instanceof Error) {
-      alert(err.message);
-    } else {
-      alert("Unknown error");
-    }
+    alert("Unknown error");
   }
 };
 
