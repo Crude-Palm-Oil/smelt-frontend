@@ -28,6 +28,7 @@ import {
   type LintFinding,
   type LintSeverity,
 } from "@/lib/mock-results-data";
+import useSWR from "swr"
 
 function severityIcon(severity: LintSeverity) {
   switch (severity) {
@@ -404,39 +405,48 @@ function SummaryPill({
  * Auto triggers generation on scan if status is not already Ready.
  * View/download buttons are disabled until status reaches Ready.
  */
+const fetcher = (url: string) => fetch(url, { cache: "no-store" }).then(r => r.json())
+
 function ReportBox({ scanId, initialStatus }: { scanId: string, initialStatus: string }) {
-  const [status, setStatus] = useState<"Pending" | "Generating" | "Ready" | "Failed">(
-    initialStatus as "Pending" | "Generating" | "Ready" | "Failed"
+  const [triggered, setTriggered] = useState(false)
+
+  // Poll /api/reports every 3s until report is Ready or Failed
+  const { data: reports } = useSWR(
+    "/api/reports",
+    fetcher,
+    {
+      refreshInterval: (data) => {
+        // Stop polling once this scan's report is Ready or Failed
+        const report = data?.find((r: any) => r.id === scanId)
+        if (report?.pdf_status === "Ready" || report?.pdf_status === "Failed") return 0
+        return 3000
+      },
+      fallbackData: [],
+    }
   )
 
-  // Trigger generation on scan if report is not already ready
+  // Derive status from SWR data, fall back to initialStatus
+  const report = reports?.find((r: any) => r.id === scanId)
+  const status = (report?.pdf_status ?? initialStatus) as "Pending" | "Generating" | "Ready" | "Failed"
+
+  // Trigger generation once on mount if not already Ready
   useEffect(() => {
-    if (status !== "Ready") {
-      triggerGenerate(scanId)
-    }
-  }, [scanId])
-  
-  // POSTs to /api/reports/generate
-  function triggerGenerate(id: string) {
-    setStatus("Generating")
+    if (status === "Ready" || triggered) return
+    setTriggered(true)
     fetch(`/api/reports/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scan_id: id }),
-    })
-      .then(() => setStatus("Ready"))
-      .catch(() => setStatus("Failed"))
-  }
+      body: JSON.stringify({ scan_id: scanId }),
+    }).catch(console.error)
+  }, [scanId, status, triggered])
 
-  // Opens HTML report inline in a new tab via /api/reports/serve/{scan_id}
   const handleView = () => {
-    window.open(`/api/reports/serve/${scanId}`, "_blank")
+    window.open(`/api/reports/${scanId}`, "_blank")
   }
 
-  // Forces file download via /api/reports/download/{scan_id}
   const handleDownload = () => {
     const a = document.createElement("a")
-    a.href = `/api/reports/download/${scanId}`
+    a.href = `/api/reports/${scanId}?download=true`
     a.download = `report-${scanId}.html`
     a.click()
   }
@@ -448,17 +458,15 @@ function ReportBox({ scanId, initialStatus }: { scanId: string, initialStatus: s
         <p className="font-mono text-[10px] uppercase tracking-widest">Report</p>
       </div>
       <div className="mt-1 flex items-center justify-between">
-        {status === "Generating" ? (
+        {status === "Generating" || status === "Pending" ? (
           <div className="flex items-center gap-1.5 text-yellow-400">
             <Loader2 size={11} className="animate-spin" />
             <span className="font-mono text-xs">Generating</span>
           </div>
         ) : status === "Ready" ? (
           <span className="font-mono text-xs text-emerald-400">Ready</span>
-        ) : status === "Failed" ? (
-          <span className="font-mono text-xs text-red-400">Failed</span>
         ) : (
-          <span className="font-mono text-xs text-zinc-600">Pending</span>
+          <span className="font-mono text-xs text-red-400">Failed</span>
         )}
         <div className="flex items-center gap-2">
           <button
