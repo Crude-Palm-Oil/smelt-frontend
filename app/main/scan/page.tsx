@@ -624,7 +624,18 @@ export default function ScanPage() {
       const data = await uploadAndScanCertificates(formData);
 
       if (data?.error) {
-        setError(data.message ?? "Upload failed.");
+        const rawMessage = data.message ?? "";
+
+        if (rawMessage.includes("Too many files")) {
+          setError(
+            "You selected too many certificate files. Please upload 1000 files or fewer, or split them into multiple scans.",
+          );
+        } else {
+          setError(
+            "Upload failed. Please check your certificate files and try again.",
+          );
+        }
+
         return;
       }
 
@@ -819,7 +830,7 @@ export default function ScanPage() {
                 <input
                   type="file"
                   multiple
-                  accept=".pem,.crt,.cer,.der,.p7b"
+                  accept=".pem,.crt,.cer,.der"
                   onChange={handleFileChange}
                   className="hidden"
                   id="fileUpload"
@@ -835,7 +846,7 @@ export default function ScanPage() {
                     Click to upload certificates
                   </span>
                   <span className="mt-2 text-sm text-zinc-500">
-                    Supports .pem, .crt, .cer, .der, .p7b
+                    Supports .pem, .crt, .cer, .der
                   </span>
                 </label>
 
