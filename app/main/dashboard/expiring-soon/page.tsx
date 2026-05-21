@@ -1,8 +1,24 @@
+import ExpiryReviewClient from "@/components/dashboard/client/ExpiryReviewClient";
 import { getExpiringSoon } from "@/lib/server/dashboard";
-import ExpiryReviewClient from "@/components/dashboard/ExpiryReviewClient";
 
-export default async function ExpiringSoonPage() {
-  const expiringCertificates = await getExpiringSoon();
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
-  return <ExpiryReviewClient findings={expiringCertificates} />;
+type ExpiringSoonPageProps = {
+  searchParams?: Promise<{
+    tab?: string;
+  }>;
+};
+
+export default async function ExpiringSoonPage({
+  searchParams,
+}: ExpiringSoonPageProps) {
+  const params = await searchParams;
+
+  const initialTab =
+    params?.tab === "expiring-soon" ? "expiring-soon" : "expired";
+
+  const findings = await getExpiringSoon();
+
+  return <ExpiryReviewClient findings={findings} initialTab={initialTab} />;
 }
