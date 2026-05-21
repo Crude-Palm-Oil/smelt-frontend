@@ -6,11 +6,15 @@ import {
   CircleX,
   type LucideIcon,
 } from "lucide-react";
-import { getDashboardSummary } from "@/lib/server/dashboard";
+import {
+  getDashboardSummary,
+  type TimeRange,
+} from "@/lib/server/dashboard";
 
 type StatCard = {
   label: string;
   value: string | number;
+  sub: string;
   href: string;
   color: string;
   bg: string;
@@ -38,15 +42,46 @@ function getPassRateColor(passRate: number) {
   };
 }
 
-export default async function StatsCards() {
-  const summary = await getDashboardSummary();
+function getRangeLabel(range: TimeRange) {
+  if (range === "all") {
+    return "All time";
+  }
+
+  if (range === "14d") {
+    return "Last 14 days";
+  }
+
+  if (range === "30d") {
+    return "Last 30 days";
+  }
+
+  if (range === "1y") {
+    return "Last year";
+  }
+
+  return "Last 7 days";
+}
+
+export default async function StatsCards({
+  range,
+}: {
+  range: TimeRange;
+}) {
+  const summary = await getDashboardSummary(range);
   const passRateTone = getPassRateColor(summary.compliance_pass_rate);
+  const rangeLabel = getRangeLabel(range);
+
+  const acceptableChecks =
+    summary.acceptable_checks ?? summary.passed_checks ?? 0;
+
+  const totalChecks = summary.total_checks ?? 0;
 
   const stats: StatCard[] = [
     {
       label: "Compliance Pass Rate",
-      value: `${summary.acceptable_checks}/${summary.total_checks}`,
-      href: "/main/dashboard/compliance-pass-rate",
+      value: `${acceptableChecks}/${totalChecks}`,
+      sub: `${summary.compliance_pass_rate}% pass rate · ${rangeLabel}`,
+      href: `/main/dashboard/compliance-pass-rate?range=${range}`,
       color: passRateTone.color,
       bg: passRateTone.bg,
       icon: ShieldCheck,
@@ -54,7 +89,8 @@ export default async function StatsCards() {
     {
       label: "Critical Findings",
       value: summary.critical_fatal_findings,
-      href: "/main/dashboard/critical-findings",
+      sub: rangeLabel,
+      href: `/main/dashboard/critical-findings?range=${range}`,
       color: "text-fuchsia-400",
       bg: "bg-fuchsia-500/10",
       icon: TriangleAlert,
@@ -62,7 +98,8 @@ export default async function StatsCards() {
     {
       label: "Expired Certificates",
       value: summary.expired_certificates ?? 0,
-      href: "/main/dashboard/expiring-soon?tab=expired",
+      sub: rangeLabel,
+      href: `/main/dashboard/expiring-soon?tab=expired&range=${range}`,
       color: "text-red-400",
       bg: "bg-red-500/10",
       icon: CircleX,
@@ -70,7 +107,8 @@ export default async function StatsCards() {
     {
       label: "Expiring Soon",
       value: summary.expiring_soon ?? 0,
-      href: "/main/dashboard/expiring-soon?tab=expiring-soon",
+      sub: "Expiry warning in selected scans",
+      href: `/main/dashboard/expiring-soon?tab=expiring-soon&range=${range}`,
       color: "text-amber-400",
       bg: "bg-amber-500/10",
       icon: ClockAlert,
@@ -100,6 +138,10 @@ export default async function StatsCards() {
 
             <p className={`mt-2 font-mono text-2xl font-semibold ${stat.color}`}>
               {stat.value}
+            </p>
+
+            <p className="mt-1 font-mono text-[10px] text-zinc-500">
+              {stat.sub}
             </p>
           </Link>
         );

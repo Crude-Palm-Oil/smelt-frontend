@@ -2,12 +2,48 @@ import { Suspense } from "react";
 import StatsCards from "@/components/dashboard/StatsCards";
 import RecentScansTable from "@/components/dashboard/RecentScansTable";
 import AlertFeed from "@/components/dashboard/AlertFeed";
+import DashboardTimeRangeFilter from "@/components/dashboard/DashboardTimeRangeFilter";
+import type { TimeRange } from "@/lib/server/dashboard";
 
-export default async function DashboardPage() {
+function getValidRange(value?: string): TimeRange {
+  if (
+    value === "7d" ||
+    value === "14d" ||
+    value === "30d" ||
+    value === "1y" ||
+    value === "all"
+  ) {
+    return value;
+  }
+
+  return "all";
+}
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string }>;
+}) {
+  const params = await searchParams;
+  const range = getValidRange(params.range);
+
   return (
     <div className="flex flex-col gap-8 p-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.25em] text-zinc-500">
+            Dashboard
+          </p>
+          <h1 className="mt-1 text-xl font-semibold text-zinc-100">
+            TLS Compliance Overview
+          </h1>
+        </div>
+
+        <DashboardTimeRangeFilter activeRange={range} />
+      </div>
+
       <Suspense fallback={<StatsCardsSkeleton />}>
-        <StatsCards />
+        <StatsCards range={range} />
       </Suspense>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_0.9fr]">
