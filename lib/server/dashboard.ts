@@ -22,15 +22,20 @@ async function fetchDashboardEndpoint<T>(path: string, fallback: T): Promise<T> 
   }
 }
 
+export type TimeRange = "7d" | "14d" | "30d" | "1y" | "all";
+
 export type DashboardSummary = {
+  range?: TimeRange;
+  certificates_checked: number;
   compliance_pass_rate: number;
+  acceptable_checks?: number;
   passed_checks: number;
-  warning_checks: number;
+  warning_checks?: number;
+  info_checks?: number;
   total_checks: number;
   critical_fatal_findings: number;
-  expiring_soon: number;
   expired_certificates: number;
-  acceptable_checks: number;
+  expiring_soon: number;
 };
 
 export type RecentScan = {
@@ -94,17 +99,24 @@ export type CompliancePassFinding = {
   source: string | null;
 };
 
-export async function getDashboardSummary(): Promise<DashboardSummary> {
-  return fetchDashboardEndpoint<DashboardSummary>("/api/dashboard/summary", {
-    compliance_pass_rate: 0,
-    passed_checks: 0,
-    warning_checks: 0,
-    total_checks: 0,
-    critical_fatal_findings: 0,
-    expiring_soon: 0,
-    expired_certificates: 0,
-    acceptable_checks: 0,
-  });
+export async function getDashboardSummary(
+  range: TimeRange = "all"
+): Promise<DashboardSummary> {
+  return fetchDashboardEndpoint<DashboardSummary>(
+    `/api/dashboard/summary?range=${range}`,
+    {
+      certificates_checked: 0,
+      compliance_pass_rate: 0,
+      acceptable_checks: 0,
+      passed_checks: 0,
+      warning_checks: 0,
+      info_checks: 0,
+      total_checks: 0,
+      critical_fatal_findings: 0,
+      expired_certificates: 0,
+      expiring_soon: 0,
+    }
+  );
 }
 
 export async function getRecentScans(): Promise<RecentScan[]> {
