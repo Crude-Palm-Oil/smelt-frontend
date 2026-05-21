@@ -95,7 +95,7 @@ export default async function CompliancePassRatePage() {
                       ? `Cert ${finding.cert_id}`
                       : finding.target_id
                         ? `Target ${finding.target_id}`
-                        : "-"}
+                        : "Scan-level"}
                   </p>
                 </div>
 
