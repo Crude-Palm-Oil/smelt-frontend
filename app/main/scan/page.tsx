@@ -647,15 +647,8 @@ export default function ScanPage() {
       return;
     }
 
-    const cron = getCronOrSetError();
-    if (cron === undefined) return;
-
     const formData = new FormData();
     formData.append("name", scanName.trim());
-
-    if (cron) {
-      formData.append("cron", cron);
-    }
 
     files.forEach((file) => formData.append("certificates", file));
 
@@ -802,6 +795,7 @@ export default function ScanPage() {
                 >
                   Targets
                 </label>
+
                 <textarea
                   id="targetsInput"
                   rows={4}
@@ -812,6 +806,7 @@ export default function ScanPage() {
                   }
                   className="w-full resize-none rounded-md border border-zinc-800 bg-zinc-900/50 px-4 py-3 text-sm font-mono text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-emerald-400/50"
                 />
+
                 <p className="text-sm text-zinc-500">
                   One target per line or comma-separated. Append{" "}
                   <span className="font-mono text-zinc-400">:port</span> to
@@ -829,6 +824,7 @@ export default function ScanPage() {
                   className="hidden"
                   id="dnsZoneUpload"
                 />
+
                 <label
                   htmlFor="dnsZoneUpload"
                   className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-8 text-center transition hover:border-emerald-400/40 hover:bg-zinc-900/50"
@@ -836,9 +832,11 @@ export default function ScanPage() {
                   <span className="flex h-14 w-14 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900/60">
                     <Upload className="h-6 w-6 text-zinc-400" />
                   </span>
+
                   <span className="mt-5 text-base font-mono text-zinc-200">
                     Click to upload DNS zone file
                   </span>
+
                   <span className="mt-2 text-sm text-zinc-500">
                     Supports BIND zone files (.zone, .db, .txt)
                   </span>
@@ -854,6 +852,7 @@ export default function ScanPage() {
                         {(dnsFile.size / 1024).toFixed(2)} KB
                       </p>
                     </div>
+
                     <button
                       type="button"
                       onClick={() => setDnsFile(null)}
@@ -876,6 +875,7 @@ export default function ScanPage() {
                   className="hidden"
                   id="fileUpload"
                 />
+
                 <label
                   htmlFor="fileUpload"
                   className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-8 text-center transition hover:border-emerald-400/40 hover:bg-zinc-900/50"
@@ -883,9 +883,11 @@ export default function ScanPage() {
                   <span className="flex h-14 w-14 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900/60">
                     <Upload className="h-6 w-6 text-zinc-400" />
                   </span>
+
                   <span className="mt-5 text-base font-mono text-zinc-200">
                     Click to upload certificates
                   </span>
+
                   <span className="mt-2 text-sm text-zinc-500">
                     Supports .pem, .crt, .cer, .der
                   </span>
@@ -916,11 +918,13 @@ export default function ScanPage() {
                             ) : (
                               <ChevronRight className="h-3.5 w-3.5 text-zinc-500" />
                             )}
+
                             <p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">
                               {files.length} file{files.length === 1 ? "" : "s"}{" "}
                               selected
                             </p>
                           </div>
+
                           <span
                             role="button"
                             tabIndex={0}
@@ -961,6 +965,7 @@ export default function ScanPage() {
                                   className="w-full rounded-md border border-zinc-800 bg-zinc-900/50 py-1.5 pl-7 pr-3 text-xs font-mono text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-emerald-400/50"
                                 />
                               </div>
+
                               {q && (
                                 <p className="mt-1.5 font-mono text-[10px] text-zinc-600">
                                   {matches.length} of {files.length} match
@@ -988,6 +993,7 @@ export default function ScanPage() {
                                         {(file.size / 1024).toFixed(2)} KB
                                       </p>
                                     </div>
+
                                     <button
                                       type="button"
                                       onClick={() => removeFile(index)}
@@ -1008,163 +1014,24 @@ export default function ScanPage() {
             )}
           </Card>
 
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 px-6 py-5">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  <CalendarClock className="h-4 w-4 text-emerald-400" />
-                  <p className="text-xs font-mono uppercase tracking-[0.2em] text-zinc-300">
-                    Recurring Scan
-                  </p>
-                </div>
-                <p className="mt-1.5 text-sm text-zinc-500">
-                  Enable this to attach a cron schedule to the scan request.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsRecurring(!isRecurring)}
-                className={`relative h-6 w-11 shrink-0 rounded-full border transition ${
-                  isRecurring
-                    ? "border-emerald-400/60 bg-emerald-400/20"
-                    : "border-zinc-700 bg-zinc-900"
-                }`}
-              >
-                <span
-                  className={`absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full transition ${
-                    isRecurring ? "left-6 bg-emerald-400" : "left-1 bg-zinc-500"
-                  }`}
-                />
-              </button>
-            </div>
-
-            {isRecurring && (
-              <div className="mt-5 space-y-5 border-t border-zinc-800 pt-5">
-                <div>
-                  <label className="mb-2 block text-[10px] font-mono uppercase tracking-widest text-zinc-500">
-                    Schedule Type
-                  </label>
-                  <select
-                    value={recurrenceType}
-                    onChange={(e) =>
-                      setRecurrenceType(
-                        e.target.value as
-                          | "daily"
-                          | "weekly"
-                          | "monthly"
-                          | "custom",
-                      )
-                    }
-                    className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm font-mono text-zinc-200 outline-none focus:border-emerald-400/50"
-                  >
-                    <option value="daily">Daily</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="monthly">Monthly</option>
-                    <option value="custom">Custom cron</option>
-                  </select>
-                </div>
-
-                {recurrenceType !== "custom" && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="mb-2 block text-[10px] font-mono uppercase tracking-widest text-zinc-500">
-                        Hour
-                      </label>
-                      <input
-                        type="number"
-                        min={0}
-                        max={23}
-                        value={cronHour}
-                        onChange={(e) => setCronHour(e.target.value)}
-                        className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm font-mono text-zinc-200 outline-none focus:border-emerald-400/50"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="mb-2 block text-[10px] font-mono uppercase tracking-widest text-zinc-500">
-                        Minute
-                      </label>
-                      <input
-                        type="number"
-                        min={0}
-                        max={59}
-                        value={cronMinute}
-                        onChange={(e) => setCronMinute(e.target.value)}
-                        className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm font-mono text-zinc-200 outline-none focus:border-emerald-400/50"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {recurrenceType === "weekly" && (
-                  <div>
-                    <label className="mb-2 block text-[10px] font-mono uppercase tracking-widest text-zinc-500">
-                      Weekdays
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                      {weekOptions.map((day) => (
-                        <button
-                          key={day.value}
-                          type="button"
-                          onClick={() => toggleWeeklyDay(day.value)}
-                          className={`rounded-md border px-3 py-2 text-xs font-mono transition ${
-                            weeklyDays.includes(day.value)
-                              ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300"
-                              : "border-zinc-800 text-zinc-500 hover:text-zinc-300"
-                          }`}
-                        >
-                          {day.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {recurrenceType === "monthly" && (
-                  <div>
-                    <label className="mb-2 block text-[10px] font-mono uppercase tracking-widest text-zinc-500">
-                      Days of Month
-                    </label>
-                    <div className="flex max-h-[130px] flex-wrap gap-2 overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-950 p-3">
-                      {monthOptions.map((day) => (
-                        <button
-                          key={day}
-                          type="button"
-                          onClick={() => toggleMonthlyDay(day)}
-                          className={`rounded-md border px-3 py-2 text-xs font-mono transition ${
-                            monthlyDays.includes(day)
-                              ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300"
-                              : "border-zinc-800 text-zinc-500 hover:text-zinc-300"
-                          }`}
-                        >
-                          {day}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {recurrenceType === "custom" && (
-                  <div>
-                    <label className="mb-2 block text-[10px] font-mono uppercase tracking-widest text-zinc-500">
-                      Cron Pattern
-                    </label>
-                    <input
-                      type="text"
-                      value={customCron}
-                      onChange={(e) => setCustomCron(e.target.value)}
-                      placeholder="30 4 1,15 * 5"
-                      className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm font-mono text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-emerald-400/50"
-                    />
-                    <p className="mt-2 text-xs text-zinc-500">
-                      Format: minute hour day-of-month month day-of-week.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          {activeTab !== "upload-certificate" && (
+            <RecurringSchedulePanel
+              isRecurring={isRecurring}
+              setIsRecurring={setIsRecurring}
+              recurrenceType={recurrenceType}
+              setRecurrenceType={setRecurrenceType}
+              cronHour={cronHour}
+              setCronHour={setCronHour}
+              cronMinute={cronMinute}
+              setCronMinute={setCronMinute}
+              weeklyDays={weeklyDays}
+              toggleWeeklyDay={toggleWeeklyDay}
+              monthlyDays={monthlyDays}
+              toggleMonthlyDay={toggleMonthlyDay}
+              customCron={customCron}
+              setCustomCron={setCustomCron}
+            />
+          )}
 
           {error && (
             <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3">
