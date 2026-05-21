@@ -10,6 +10,7 @@ import {
   AlertOctagon,
   Info,
   ChevronRight,
+  Repeat,
 } from "lucide-react";
 import { type FinishedScan } from "@/lib/mock-results-data";
 import { timeAgo } from "@/lib/utils";
@@ -217,6 +218,24 @@ export default function ResultsTable({
                         <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-mono font-medium uppercase tracking-widest text-emerald-400">
                           Latest
                         </span>
+                      )}
+                      {row.recurringId && (
+                        // Recurring scans get a small clickable badge that
+                        // jumps straight to the schedule's detail page. We
+                        // stop propagation so the click doesn't also fire
+                        // the row's navigate-to-scan-detail handler.
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/main/recurring/${row.recurringId}`);
+                          }}
+                          title="View recurring schedule"
+                          className="inline-flex items-center gap-1 rounded border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-mono font-medium uppercase tracking-widest text-emerald-300 transition hover:border-emerald-500/60 hover:bg-emerald-500/20"
+                        >
+                          <Repeat size={9} />
+                          Recurring
+                        </button>
                       )}
                     </div>
                     <p className="font-mono text-[10px] text-zinc-600">{row.id.slice(0, 8)}</p>
