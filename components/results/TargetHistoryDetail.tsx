@@ -118,7 +118,7 @@ export default function TargetHistoryDetail({
               {summary.scanCount} scan{summary.scanCount === 1 ? "" : "s"} on record
             </p>
           </div>
-          <SummaryBadge status={(summary.worstStatus as LintStatus) ?? "pass"} />
+          <SummaryBadge status={(summary.latestStatus as LintStatus) ?? "pass"} />
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">

@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import { Activity, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
-// Fires on /main/monitoring?scan=started. The scan submission flow on
-// /main/scan now fires the analysis request server-side without blocking
-// the client, redirecting here so the user can watch progress on the
-// Ongoing Scans widget. This toast gives them the "we got it, hang tight"
-// confirmation that used to be implicit in the blocking-redirect flow.
+// Fires on /main/results?scan=started (the scan submission flow on
+// /main/scan still redirects to /main/monitoring?scan=started, but the
+// monitoring page is now a redirect shim that forwards the query string
+// here). The toast gives the user a "we got it, hang tight" confirmation
+// while the Ongoing Scans widget below picks up the live job.
 export default function ScanStartedToast() {
   const searchParams = useSearchParams();
   const [showToast, setShowToast] = useState(false);
@@ -20,7 +20,7 @@ export default function ScanStartedToast() {
       const timer = setTimeout(() => {
         setShowToast(false);
         // Strip the param so a refresh doesn't re-trigger the toast.
-        window.history.replaceState(null, "", "/main/monitoring");
+        window.history.replaceState(null, "", "/main/results");
       }, 5000);
 
       return () => clearTimeout(timer);

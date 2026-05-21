@@ -115,7 +115,7 @@ export default function CertificateHistoryDetail({
               {summary.scanCount} scan{summary.scanCount === 1 ? "" : "s"} on record
             </p>
           </div>
-          <SummaryBadge status={(summary.worstStatus as LintStatus) ?? "pass"} />
+          <SummaryBadge status={(summary.latestStatus as LintStatus) ?? "pass"} />
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -131,7 +131,7 @@ export default function CertificateHistoryDetail({
           />
           <MetaCard
             icon={<Calendar size={12} />}
-            label="Earliest Expiry"
+            label="Latest Expiry"
             value={
               summary.notAfter
                 ? new Date(summary.notAfter).toLocaleDateString()
