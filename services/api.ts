@@ -1,12 +1,15 @@
 "use server"
 
 import type {
+  CertificateSummary,
   FinishedScan,
+  HistoryItem,
   Lint,
   LintFinding,
   LintResults,
   LintSeverity,
   LintStatus,
+  TargetSummary,
 } from "@/lib/mock-results-data";
 import Cookies from "js-cookie";
 
@@ -133,25 +136,168 @@ export async function getFinishedScans(): Promise<FinishedScan[]> {
   return res.json();
 }
 
-export async function getLintsForScan(scanId: string): Promise<Lint[]> {
-  // Findings live in S3 and are returned by the Go analysis service; the
-  // FastAPI `/results/scans/{id}/lints` route only exposes the DB rows
-  // (no findings blob) so we go to the analysis service directly.
-  const res = await fetch(`${ANALYSIS_API}/scan/${scanId}`, {
+// --- Per-target history --------------------------------------------------
+
+// The backend's `worstStatus` field can be "pass" | "info" | "warn" | "error"
+// | "fatal" | "NA" | "NE". `toLintStatus` maps "error" → "fail" and falls
+// back to "pass" for unknowns; that's fine for the table badge but loses
+// the "never evaluated" signal. Targets returned by /results/targets always
+// have at least one lint so "na" can never appear in practice.
+function normaliseHistoryStatus(raw: string): LintStatus {
+  return toLintStatus(raw);
+}
+
+export async function getTargets(): Promise<TargetSummary[]> {
+  const res = await fetch(`${BASE_URL}/results/targets`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Failed to fetch targets (${res.status})`);
+  const rows = (await res.json()) as TargetSummary[];
+  return rows.map((row) => ({
+    ...row,
+    worstStatus: normaliseHistoryStatus(row.worstStatus as string),
+  }));
+}
+
+export async function getTargetHistory(params: {
+  hostname?: string | null;
+  ipAddress?: string | null;
+  port: number;
+}): Promise<HistoryItem[]> {
+  const qs = new URLSearchParams({ port: String(params.port) });
+  if (params.hostname) qs.set("hostname", params.hostname);
+  if (params.ipAddress) qs.set("ipAddress", params.ipAddress);
+
+  const res = await fetch(`${BASE_URL}/results/targets/history?${qs.toString()}`, {
     cache: "no-store",
   });
   if (res.status === 404) return [];
-  if (!res.ok) throw new Error(`Failed to fetch lints (${res.status})`);
+  if (!res.ok) throw new Error(`Failed to fetch target history (${res.status})`);
+  const rows = (await res.json()) as HistoryItem[];
+  return rows.map((row) => ({
+    ...row,
+    status: normaliseHistoryStatus(row.status as string),
+  }));
+}
 
-  const payload: RawScanResult = await res.json();
-  // While the scan is still running the Go service responds with
-  // `{status, processed_count, target_count}` and no results array.
-  // Treat that the same as "no findings yet" rather than crashing.
-  const rows = payload.results;
-  if (!Array.isArray(rows)) return [];
+// --- Per-certificate history --------------------------------------------
 
-  const scannedAt = payload.scanned_at ?? new Date().toISOString();
-  return rows.map((row) => adaptLint(row, scanId, scannedAt));
+export async function getCertificates(): Promise<CertificateSummary[]> {
+  const res = await fetch(`${BASE_URL}/results/certificates`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Failed to fetch certificates (${res.status})`);
+  const rows = (await res.json()) as CertificateSummary[];
+  return rows.map((row) => ({
+    ...row,
+    worstStatus: normaliseHistoryStatus(row.worstStatus as string),
+  }));
+}
+
+export async function getCertificateHistory(
+  commonName: string,
+): Promise<HistoryItem[]> {
+  // Identity is Subject CN (encoded for URL safety — wildcard CNs contain "*",
+  // some CNs contain ":" or "/" which must be percent-encoded).
+  const res = await fetch(
+    `${BASE_URL}/results/certificates/${encodeURIComponent(commonName)}/history`,
+    { cache: "no-store" },
+  );
+  if (res.status === 404) return [];
+  if (!res.ok) throw new Error(`Failed to fetch certificate history (${res.status})`);
+  const rows = (await res.json()) as HistoryItem[];
+  return rows.map((row) => ({
+    ...row,
+    status: normaliseHistoryStatus(row.status as string),
+  }));
+}
+
+export async function getLintsForScan(scanId: string): Promise<Lint[]> {
+  // Two data sources, ordered by richness:
+  //  1) Go analysis service `/scan/{id}` — full ScanResult with per-rule
+  //     findings (loaded from S3). This is the preferred path because the
+  //     detail page's expanded view needs the findings list.
+  //  2) Backend `/results/scans/{scanId}/lints` — Postgres-only metadata
+  //     (target name, cert subject/issuer, status). No findings, but the
+  //     per-cert rows still render so the user sees who/what was scanned
+  //     and the worst-status per row.
+  //
+  // Go currently swallows S3-read errors and returns 200 + empty body
+  // when the bucket file is missing. We fall through to (2) on any of:
+  // empty body, non-array results, network error, non-OK status.
+  try {
+    const res = await fetch(`${ANALYSIS_API}/scan/${scanId}`, {
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const text = await res.text();
+      if (text.trim()) {
+        try {
+          const payload: RawScanResult = JSON.parse(text);
+          const rows = payload.results;
+          if (Array.isArray(rows) && rows.length > 0) {
+            const scannedAt = payload.scanned_at ?? new Date().toISOString();
+            return rows.map((row) => adaptLint(row, scanId, scannedAt));
+          }
+        } catch {
+          // Malformed JSON — fall through to backend fallback.
+        }
+      }
+    }
+  } catch (err) {
+    console.warn(`getLintsForScan ${scanId} analysis fetch failed:`, err);
+  }
+
+  // Fallback: backend lint-metadata endpoint. Returns DB rows only; the
+  // `lintResults` JSONB column is unused by the Go scanner (findings live
+  // in S3), so we render with an empty findings list.
+  try {
+    const res = await fetch(`${BASE_URL}/results/scans/${scanId}/lints`, {
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      console.warn(`getLintsForScan ${scanId} backend fallback failed (${res.status})`);
+      return [];
+    }
+    const rows: BackendLintRow[] = await res.json();
+    return rows.map(adaptBackendLint);
+  } catch (err) {
+    console.warn(`getLintsForScan ${scanId} backend fallback error:`, err);
+    return [];
+  }
+}
+
+type BackendLintRow = {
+  id: string;
+  scanId: string;
+  targetId: string | null;
+  certId: string | null;
+  targetName: string | null;
+  certSubject: string | null;
+  certIssuer: string | null;
+  scannedAt: string;
+  status: string;
+  lintResults: unknown;
+};
+
+const EMPTY_LINT_RESULTS: LintResults = {
+  summary: { pass: 0, info: 0, warn: 0, error: 0, fatal: 0, na: 0 },
+  findings: [],
+};
+
+function adaptBackendLint(row: BackendLintRow): Lint {
+  // Backend already prefixes the subject with "CN=" in services._to_lint_row,
+  // so don't re-prefix here. `lintResults` is populated by the backend
+  // from per-lint S3 blobs; it'll be a findings array when retrievable,
+  // or null/empty when the blob is missing.
+  return {
+    id: row.id,
+    scanId: row.scanId,
+    targetId: row.targetId,
+    certId: row.certId ?? "",
+    targetName: row.targetName ?? "(no target)",
+    certSubject: row.certSubject ?? "(no subject)",
+    certIssuer: row.certIssuer ?? "(no issuer)",
+    scannedAt: row.scannedAt,
+    status: toLintStatus(row.status),
+    lintResults: row.lintResults ? toLintResults(row.lintResults) : EMPTY_LINT_RESULTS,
+  };
 }
 
 // --- Scan kickoff (placeholder) ----------------------------------------
@@ -161,14 +307,23 @@ export async function scanDomain(target: string, port?: number) {
 }
 
 /** Fetches all scans with their report generation status from the reports service.
- *  Called server-side in ScanResultPage to pre-populate ReportBox initial state. */
+ *  Called server-side in ScanResultPage to pre-populate ReportBox initial state.
+ *  Defensive on every failure path so the scan-detail page renders even when
+ *  the reports container is missing/broken. */
 export async function getReports() {
-  const res = await fetch(`${REPORT_API}/api/reports`, { cache: "no-store" })
-  if (!res.ok) {
-    console.warn(`getReports failed (${res.status})`);
+  try {
+    const res = await fetch(`${REPORT_API}/api/reports`, { cache: "no-store" });
+    if (!res.ok) {
+      console.warn(`getReports failed (${res.status})`);
+      return [];
+    }
+    const text = await res.text();
+    if (!text.trim()) return [];
+    return JSON.parse(text);
+  } catch (err) {
+    console.warn(`getReports error:`, err);
     return [];
   }
-  return res.json()
 }
 
 export async function getPolicyProfiles() {
