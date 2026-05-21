@@ -39,11 +39,67 @@ export type FinishedScan = {
   scannedAt: string;
   targetCount: number;
   status: "completed" | "failed";
+  // When non-null, this scan run was triggered by a recurring schedule
+  // and the Results row should show a "Recurring" badge + jump-to-schedule link.
+  // Optional on the type so legacy mock fixtures (which predate the column)
+  // still type-check — the live API always emits `recurringId: null | "<uuid>"`.
+  recurringId?: string | null;
   lintsPass: number;
   lintsInfo: number;
   lintsWarn: number;
   lintsFail: number;
   lintsFatal: number;
+};
+
+// --- Recurring scans ----------------------------------------------------
+
+export type RecurringScanType = "target" | "file";
+
+export type RecurringTarget = {
+  hostname: string | null;
+  ipAddress: string | null;
+  port: number;
+};
+
+// Listing-view shape (one row per schedule). Backend joins past run
+// counts from the scans table.
+export type RecurringScanRow = {
+  id: string;
+  name: string;
+  cron: string;
+  lastRunAt: string | null;
+  runCount: number;
+};
+
+// One past execution of a recurring schedule, shown in the detail
+// timeline.
+export type RecurringRunHistoryItem = {
+  scanId: string;
+  name: string;
+  scannedAt: string;
+  status: string;
+  targetCount: number;
+};
+
+// Detail-view shape. `type`/`targets`/`certificateIds` come from the
+// S3 payload — they're null when the payload is missing or unreadable
+// (the row still renders with name + cron in that case).
+export type RecurringScanDetail = {
+  id: string;
+  name: string;
+  cron: string;
+  type: RecurringScanType | null;
+  targets: RecurringTarget[] | null;
+  certificateIds: string[] | null;
+  lastRunAt: string | null;
+  runCount: number;
+  history: RecurringRunHistoryItem[];
+};
+
+export type RecurringScanUpdate = {
+  name?: string;
+  cron?: string;
+  targets?: RecurringTarget[];
 };
 
 // Per-target history view. Identity is (hostname, ipAddress, port) — multiple

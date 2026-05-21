@@ -7,6 +7,7 @@ export const ROUTES = {
   REPORTS: "/reports",
   CONFIGURATION: "/configuration",
   MONITORING: "/monitoring",
+  RECURRING: "/recurring",
 } as const;
 
 export const PAGE_TITLES: Record<string, string> = {
@@ -16,6 +17,7 @@ export const PAGE_TITLES: Record<string, string> = {
   [ROUTES.REPORTS]: "Reports",
 [ROUTES.CONFIGURATION]: "Configuration",
   [ROUTES.MONITORING]: "Monitoring",
+  [ROUTES.RECURRING]: "Recurring",
 };
 
 import {
@@ -24,6 +26,7 @@ import {
   FileText,
   FileBarChart,
   Settings,
+  Repeat,
   LucideIcon,
 } from "lucide-react";
 
@@ -42,5 +45,6 @@ export const NAV_ITEMS: NavItem[] = [
   { id: "dashboard", label: "Dashboard", href: ROUTES.DASHBOARD, icon: LayoutDashboard },
   { id: "scan", label: "Scan", href: ROUTES.SCAN, icon: Search },
   { id: "results", label: "Results", href: ROUTES.RESULTS, icon: FileText },
+  { id: "recurring", label: "Recurring", href: ROUTES.RECURRING, icon: Repeat },
   { id: "config", label: "Configuration", href: ROUTES.CONFIGURATION, icon: Settings },
 ];

@@ -9,6 +9,9 @@ import type {
   LintResults,
   LintSeverity,
   LintStatus,
+  RecurringScanDetail,
+  RecurringScanRow,
+  RecurringScanUpdate,
   TargetSummary,
 } from "@/lib/mock-results-data";
 import Cookies from "js-cookie";
@@ -298,6 +301,67 @@ function adaptBackendLint(row: BackendLintRow): Lint {
     status: toLintStatus(row.status),
     lintResults: row.lintResults ? toLintResults(row.lintResults) : EMPTY_LINT_RESULTS,
   };
+}
+
+// --- Recurring scans ----------------------------------------------------
+//
+// The backend `app/recurring/` module owns these endpoints. CREATE lives
+// on the scan page (POST /scan with a cron field, owned by the scan team)
+// — we only do list/detail/edit/delete here.
+
+export async function getRecurringScans(): Promise<RecurringScanRow[]> {
+  const res = await fetch(`${BASE_URL}/recurring`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Failed to fetch recurring scans (${res.status})`);
+  return res.json();
+}
+
+export async function getRecurringScan(
+  id: string,
+): Promise<RecurringScanDetail | null> {
+  const res = await fetch(`${BASE_URL}/recurring/${id}`, { cache: "no-store" });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Failed to fetch recurring scan (${res.status})`);
+  return res.json();
+}
+
+export async function updateRecurringScan(
+  id: string,
+  patch: RecurringScanUpdate,
+): Promise<{ ok: boolean; status: number; message?: string }> {
+  // PATCH body uses camelCase keys on the way out — the backend reads via
+  // Pydantic which accepts both the field name and the alias. We send the
+  // snake_case form to match the schema's field declarations (no alias
+  // for the request shape).
+  const body = {
+    name: patch.name,
+    cron: patch.cron,
+    targets: patch.targets?.map((t) => ({
+      hostname: t.hostname,
+      ip_address: t.ipAddress,
+      port: t.port,
+    })),
+  };
+  const res = await fetch(`${BASE_URL}/recurring/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+  if (res.ok) return { ok: true, status: res.status };
+  const text = await res.text();
+  return { ok: false, status: res.status, message: text };
+}
+
+export async function deleteRecurringScan(
+  id: string,
+): Promise<{ ok: boolean; status: number; message?: string }> {
+  const res = await fetch(`${BASE_URL}/recurring/${id}`, {
+    method: "DELETE",
+    cache: "no-store",
+  });
+  if (res.ok) return { ok: true, status: res.status };
+  const text = await res.text();
+  return { ok: false, status: res.status, message: text };
 }
 
 // --- Scan kickoff (placeholder) ----------------------------------------
