@@ -1,14 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Globe, Upload, Search, Plus, Server } from "lucide-react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Globe, Upload, Search, Server, ChevronDown, ChevronRight } from "lucide-react";
 import {
   uploadAndScanCertificates,
   scanTargets,
   uploadAndScanDnsZone,
 } from "@/lib/server/scans";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_SCAN_URL;
 
 type ScanTab = "domain-ip" | "dns-records" | "upload-certificate";
 
@@ -25,9 +24,9 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`relative border-b px-6 pb-3 pt-2 text-sm tracking-[0.18em] uppercase transition ${
+      className={`relative -mb-px border-b-2 px-5 pb-3 pt-2 text-xs font-mono uppercase tracking-widest transition ${
         active
-          ? "border-emerald-400 text-emerald-300"
+          ? "border-emerald-400 text-emerald-400"
           : "border-transparent text-zinc-500 hover:text-zinc-300"
       }`}
     >
@@ -48,36 +47,46 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-[#0a0a0d]/80 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] backdrop-blur-sm">
-      <div className="px-6 pt-6">
+    <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/40">
+      <div className="border-b border-zinc-800 px-6 py-5">
         <div className="flex items-center gap-3">
-          {icon ? <div className="text-emerald-400">{icon}</div> : null}
-          <h3 className="text-lg tracking-[0.14em] text-zinc-200">{title}</h3>
+          {icon ? <span className="text-emerald-400">{icon}</span> : null}
+          <h2 className="text-base font-mono font-semibold uppercase tracking-[0.18em] text-zinc-100">
+            {title}
+          </h2>
         </div>
         {subtitle ? (
-          <p className="mt-2 text-sm text-zinc-500">{subtitle}</p>
+          <p className="mt-1.5 text-sm text-zinc-500">{subtitle}</p>
         ) : null}
       </div>
-      <div className="px-6 pb-6 pt-5">{children}</div>
+      <div className="px-6 py-6">{children}</div>
     </div>
   );
 }
 
 export default function ScanPage() {
-  const [activeTab, setActiveTab] = useState<ScanTab>("domain-ip");
+  const router = useRouter();
 
-  const [files, setFiles] = useState<File[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<ScanTab>("domain-ip");
   const [scanName, setScanName] = useState("");
-  const [dnsFile, setDnsFile] = useState<File | null>(null);
 
   const [targetsInput, setTargetsInput] = useState("");
+  const [dnsFile, setDnsFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [filesExpanded, setFilesExpanded] = useState(false);
+  const [fileQuery, setFileQuery] = useState("");
 
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const removeFile = (index: number) => {
-    setFiles((prev) => prev.filter((_, i) => i !== index));
+  const targetLineCount = targetsInput
+    .split(/[\n,]+/)
+    .map((l) => l.trim())
+    .filter(Boolean).length;
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    setFiles(Array.from(e.target.files));
   };
 
   const handleDnsFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,77 +94,8 @@ export default function ScanPage() {
     setDnsFile(e.target.files[0]);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
-    setFiles(Array.from(e.target.files));
-  };
-
-  const handleUpload = async () => {
-    if (files.length === 0) {
-      alert("Please upload at least 1 certificate");
-      return;
-    }
-
-    if (files.length > 1 && !scanName.trim()) {
-      alert(
-        "Please enter a scan name when uploading more than one certificate.",
-      );
-      return;
-    }
-
-    setLoading(true);
-
-    const formData = new FormData();
-    formData.append("name", scanName.trim());
-
-    files.forEach((file) => {
-      formData.append("certificates", file);
-    });
-
-    try {
-      const data = await uploadAndScanCertificates(formData);
-
-      if (data?.error) {
-        alert(data.message);
-        return;
-      }
-
-      window.location.assign("/main/results?scan=finished");
-    } catch (err) {
-      console.error(err);
-      alert("Upload failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDnsZoneScan = async () => {
-    if (!dnsFile) {
-      alert("Please upload a DNS zone file.");
-      return;
-    }
-
-    setLoading(true);
-
-    const formData = new FormData();
-    formData.append("name", scanName.trim() || dnsFile.name);
-    formData.append("zone_file", dnsFile);
-
-    try {
-      const data = await uploadAndScanDnsZone(formData);
-
-      if (data?.error) {
-        alert(data.message);
-        return;
-      }
-
-      window.location.assign("/main/results?scan=finished");
-    } catch (err) {
-      console.error(err);
-      alert("DNS zone scan failed");
-    } finally {
-      setLoading(false);
-    }
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const parseTargets = () => {
@@ -164,7 +104,7 @@ export default function ScanPage() {
       .map((l) => l.trim())
       .filter(Boolean);
 
-    const targets: any[] = [];
+    const targets: Array<{ ip_address?: string; hostname?: string; port: number }> = [];
     const errors: string[] = [];
 
     lines.forEach((line, index) => {
@@ -176,14 +116,12 @@ export default function ScanPage() {
       }
 
       const port = portStr ? Number(portStr) : 443;
-
       if (isNaN(port) || port <= 0 || port > 65535) {
         errors.push(`Line ${index + 1}: invalid port`);
         return;
       }
 
       const isIPv4 = /^(\d{1,3}\.){3}\d{1,3}$/.test(host);
-
       if (isIPv4) {
         targets.push({ ip_address: host, port });
       } else {
@@ -195,28 +133,29 @@ export default function ScanPage() {
   };
 
   const handleTargetScan = async () => {
+    setError(null);
+
     const { targets, errors } = parseTargets();
 
     if (errors.length > 0) {
-      alert(errors.join("\n"));
+      setError(errors.join(" · "));
       return;
     }
 
     if (targets.length === 0) {
-      alert("No valid targets");
+      setError("Enter at least one target.");
       return;
     }
 
     if (targets.length > 1 && !scanName.trim()) {
-      alert("Please enter a scan name when scanning more than one target.");
+      setError("Scan name is required when scanning more than one target.");
       return;
     }
 
     const fallbackName =
-      targets[0]?.domain || targets[0]?.ip_address || "target-scan";
+      targets[0]?.hostname || targets[0]?.ip_address || "target-scan";
 
     setLoading(true);
-
     try {
       const data = await scanTargets({
         name: scanName.trim() || fallbackName,
@@ -225,327 +164,392 @@ export default function ScanPage() {
       });
 
       if (data?.error) {
-        alert(data.message);
+        setError(data.message ?? "Scan failed.");
         return;
       }
 
-      window.location.assign("/main/results?scan=finished");
+      router.push("/main/results?scan=finished");
     } catch (err) {
       console.error(err);
-      alert("Scan failed");
+      setError("Scan failed.");
     } finally {
       setLoading(false);
     }
   };
 
-  const tabTitle = useMemo(() => {
-    if (activeTab === "domain-ip") return "Scan by Domain or IP Address";
-    if (activeTab === "dns-records") return "Scan from DNS Zone File";
-    return "Upload Certificate Files";
-  }, [activeTab]);
+  const handleDnsZoneScan = async () => {
+    setError(null);
+
+    if (!dnsFile) {
+      setError("Upload a DNS zone file.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("name", scanName.trim() || dnsFile.name);
+    formData.append("zone_file", dnsFile);
+
+    setLoading(true);
+    try {
+      const data = await uploadAndScanDnsZone(formData);
+
+      if (data?.error) {
+        setError(data.message ?? "DNS zone scan failed.");
+        return;
+      }
+
+      router.push("/main/results?scan=finished");
+    } catch (err) {
+      console.error(err);
+      setError("DNS zone scan failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpload = async () => {
+    setError(null);
+
+    if (files.length === 0) {
+      setError("Upload at least one certificate.");
+      return;
+    }
+
+    if (files.length > 1 && !scanName.trim()) {
+      setError("Scan name is required when uploading more than one certificate.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("name", scanName.trim());
+    files.forEach((file) => formData.append("certificates", file));
+
+    setLoading(true);
+    try {
+      const data = await uploadAndScanCertificates(formData);
+
+      if (data?.error) {
+        setError(data.message ?? "Upload failed.");
+        return;
+      }
+
+      router.push("/main/results?scan=finished");
+    } catch (err) {
+      console.error(err);
+      setError("Upload failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const tabConfig = (() => {
+    if (activeTab === "domain-ip") {
+      return {
+        title: "Scan by Domain or IP",
+        subtitle: "Connect to live hosts and lint their TLS certificates.",
+        icon: <Globe className="h-4 w-4" />,
+        queueLabel:
+          targetLineCount === 0
+            ? "No targets entered"
+            : `${targetLineCount} target${targetLineCount === 1 ? "" : "s"} queued`,
+        submitLabel: loading ? "Scanning…" : "Start Scan",
+        submitDisabled: loading || targetLineCount === 0,
+        onSubmit: handleTargetScan,
+      };
+    }
+    if (activeTab === "dns-records") {
+      return {
+        title: "Scan from DNS Zone File",
+        subtitle: "Parse a BIND zone file and lint every A / AAAA / CNAME record.",
+        icon: <Server className="h-4 w-4" />,
+        queueLabel: dnsFile ? "1 DNS zone file queued" : "No DNS zone file selected",
+        submitLabel: loading ? "Scanning…" : "Parse & Scan",
+        submitDisabled: loading || !dnsFile,
+        onSubmit: handleDnsZoneScan,
+      };
+    }
+    return {
+      title: "Upload Certificate Files",
+      subtitle: "Lint one or more PEM-encoded certificates.",
+      icon: <Upload className="h-4 w-4" />,
+      queueLabel:
+        files.length === 0
+          ? "No certificates selected"
+          : `${files.length} certificate file${files.length === 1 ? "" : "s"} queued`,
+      submitLabel: loading ? "Processing…" : "Analyse Certificates",
+      submitDisabled: loading || files.length === 0,
+      onSubmit: handleUpload,
+    };
+  })();
 
   return (
-    <div className="min-h-screen bg-[#050507] text-zinc-100">
-      <div className="px-8 py-10">
-        <div className="mx-auto max-w-[1400px]">
-          <div className="mb-8">
-            <p className="text-xl tracking-[0.2em] text-zinc-200">NEW SCAN</p>
-            <p className="mt-2 text-sm text-zinc-500">
-              Submit certificates for compliance analysis
-            </p>
-          </div>
+    <div className="px-8 py-6">
+      <div className="mx-auto w-full max-w-[1200px]">
+        <div className="mb-4 rounded-xl border border-zinc-800 bg-zinc-900/40 px-6 py-4">
+          <label
+            htmlFor="scanName"
+            className="block text-xs font-mono uppercase tracking-[0.2em] text-zinc-500"
+          >
+            Scan Name
+          </label>
+          <input
+            id="scanName"
+            type="text"
+            value={scanName}
+            onChange={(e) => setScanName(e.target.value)}
+            placeholder="my-tls-audit"
+            className="mt-3 w-full rounded-md border border-zinc-800 bg-zinc-900/50 px-4 py-3 text-sm font-mono text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-emerald-400/50"
+          />
+          <p className="mt-2 text-xs text-zinc-500">
+            Optional for a single target / file. Required when scanning multiple.
+          </p>
+        </div>
 
-          <div className="mb-8 flex border-b border-white/8">
-            <TabButton
-              active={activeTab === "domain-ip"}
-              label="DOMAIN / IP"
-              onClick={() => setActiveTab("domain-ip")}
-            />
-            <TabButton
-              active={activeTab === "dns-records"}
-              label="DNS RECORDS"
-              onClick={() => setActiveTab("dns-records")}
-            />
-            <TabButton
-              active={activeTab === "upload-certificate"}
-              label="UPLOAD CERTIFICATE"
-              onClick={() => setActiveTab("upload-certificate")}
-            />
-          </div>
+        <div className="mb-4 flex border-b border-zinc-800">
+          <TabButton
+            active={activeTab === "domain-ip"}
+            label="Domain / IP"
+            onClick={() => setActiveTab("domain-ip")}
+          />
+          <TabButton
+            active={activeTab === "dns-records"}
+            label="DNS Zone"
+            onClick={() => setActiveTab("dns-records")}
+          />
+          <TabButton
+            active={activeTab === "upload-certificate"}
+            label="Upload Certificates"
+            onClick={() => setActiveTab("upload-certificate")}
+          />
+        </div>
 
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-            <div>
-              <Card
-                title={tabTitle}
-                icon={
-                  activeTab === "domain-ip" ? (
-                    <Globe className="h-5 w-5" />
-                  ) : activeTab === "dns-records" ? (
-                    <Server className="h-5 w-5" />
-                  ) : (
-                    <Upload className="h-5 w-5" />
-                  )
-                }
-              >
-                {activeTab === "domain-ip" && (
-                  <div className="space-y-6">
-                    <div>
-                      <label className="mb-3 block text-xs uppercase tracking-[0.2em] text-zinc-500">
-                        Targets
-                      </label>
-                      <div>
-                        <label className="mb-3 block text-xs uppercase tracking-[0.2em] text-zinc-500">
-                          Scan Name
-                        </label>
-                        <input
-                          type="text"
-                          value={scanName}
-                          onChange={(e) => setScanName(e.target.value)}
-                          placeholder="Optional for single target/file, required for multiple"
-                          className="w-full rounded-md border border-white/10 bg-black px-4 py-3 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-emerald-400/50"
-                        />
-                      </div>
-                      <textarea
-                        rows={4}
-                        value={targetsInput}
-                        onChange={(e) => setTargetsInput(e.target.value)}
-                        placeholder="example.com:443\n192.168.1.1:443"
-                        className="w-full resize-none rounded-md border border-white/10 bg-black px-4 py-3 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-emerald-400/50"
-                      />
-                      <p className="mt-3 text-sm leading-6 text-zinc-500">
-                        Enter domains or IP addresses separated by commas or
-                        newlines. The system will connect to each target on port
-                        443 and extract the TLS certificate chain.
+        <div className="space-y-4">
+          <Card title={tabConfig.title} subtitle={tabConfig.subtitle} icon={tabConfig.icon}>
+            {activeTab === "domain-ip" && (
+              <div className="space-y-4">
+                <label
+                  htmlFor="targetsInput"
+                  className="block text-xs font-mono uppercase tracking-[0.2em] text-zinc-500"
+                >
+                  Targets
+                </label>
+                <textarea
+                  id="targetsInput"
+                  rows={4}
+                  value={targetsInput}
+                  onChange={(e) => setTargetsInput(e.target.value)}
+                  placeholder={"example.com:443\n192.168.1.1:443\nmail.example.com"}
+                  className="w-full resize-none rounded-md border border-zinc-800 bg-zinc-900/50 px-4 py-3 text-sm font-mono text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-emerald-400/50"
+                />
+                <p className="text-sm text-zinc-500">
+                  One target per line or comma-separated. Append{" "}
+                  <span className="font-mono text-zinc-400">:port</span> to override the default of 443.
+                </p>
+              </div>
+            )}
+
+            {activeTab === "dns-records" && (
+              <div className="space-y-4">
+                <input
+                  type="file"
+                  accept=".zone,.db,.txt"
+                  onChange={handleDnsFileChange}
+                  className="hidden"
+                  id="dnsZoneUpload"
+                />
+                <label
+                  htmlFor="dnsZoneUpload"
+                  className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-8 text-center transition hover:border-emerald-400/40 hover:bg-zinc-900/50"
+                >
+                  <span className="flex h-14 w-14 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900/60">
+                    <Upload className="h-6 w-6 text-zinc-400" />
+                  </span>
+                  <span className="mt-5 text-base font-mono text-zinc-200">
+                    Click to upload DNS zone file
+                  </span>
+                  <span className="mt-2 text-sm text-zinc-500">
+                    Supports BIND zone files (.zone, .db, .txt)
+                  </span>
+                </label>
+
+                {dnsFile && (
+                  <div className="flex items-center justify-between gap-4 rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-mono text-sm text-zinc-200">{dnsFile.name}</p>
+                      <p className="font-mono text-[10px] text-zinc-600">
+                        {(dnsFile.size / 1024).toFixed(2)} KB
                       </p>
                     </div>
-
-                    <div>
-                      <label className="mb-3 block text-xs uppercase tracking-[0.2em] text-zinc-500">
-                        Port (optional)
-                      </label>
-                      <input
-                        type="text"
-                        defaultValue="443"
-                        className="w-full rounded-md border border-white/10 bg-black px-4 py-3 text-sm text-zinc-200 outline-none focus:border-emerald-400/50"
-                      />
-                    </div>
-
-                    <div className="flex flex-wrap gap-3">
-                      <button
-                        onClick={handleTargetScan}
-                        disabled={loading}
-                        className="inline-flex items-center gap-2 rounded-md bg-emerald-400 px-5 py-3 text-sm font-medium text-black transition hover:bg-emerald-300 disabled:opacity-50"
-                      >
-                        <Search className="h-4 w-4" />
-                        {loading ? "Scanning..." : "Start Scan"}
-                      </button>
-
-                      <button className="inline-flex items-center gap-2 rounded-md border border-white/10 bg-transparent px-5 py-3 text-sm text-zinc-300 transition hover:border-white/20 hover:bg-white/5">
-                        <Plus className="h-4 w-4" />
-                        Bulk Import (.csv)
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setDnsFile(null)}
+                      className="text-xs font-mono text-red-400 transition hover:text-red-300"
+                    >
+                      Remove
+                    </button>
                   </div>
                 )}
+              </div>
+            )}
 
-                {activeTab === "dns-records" && (
-                  <div className="space-y-6">
-                    <div className="rounded-lg border border-dashed border-white/10 bg-[#0b0b0e] px-6 py-12 text-center transition hover:border-emerald-400/30">
-                      <div>
-                        <label className="mb-3 block text-xs uppercase tracking-[0.2em] text-zinc-500">
-                          Scan Name
-                        </label>
-                        <input
-                          type="text"
-                          value={scanName}
-                          onChange={(e) => setScanName(e.target.value)}
-                          placeholder="Optional for single target/file, required for multiple"
-                          className="w-full rounded-md border border-white/10 bg-black px-4 py-3 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-emerald-400/50"
-                        />
-                      </div>
-                      <input
-                        type="file"
-                        accept=".zone,.db,.txt"
-                        onChange={handleDnsFileChange}
-                        className="hidden"
-                        id="dnsZoneUpload"
-                      />
+            {activeTab === "upload-certificate" && (
+              <div className="space-y-4">
+                <input
+                  type="file"
+                  multiple
+                  accept=".pem,.crt,.cer,.der,.p7b"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  id="fileUpload"
+                />
+                <label
+                  htmlFor="fileUpload"
+                  className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-8 text-center transition hover:border-emerald-400/40 hover:bg-zinc-900/50"
+                >
+                  <span className="flex h-14 w-14 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900/60">
+                    <Upload className="h-6 w-6 text-zinc-400" />
+                  </span>
+                  <span className="mt-5 text-base font-mono text-zinc-200">
+                    Click to upload certificates
+                  </span>
+                  <span className="mt-2 text-sm text-zinc-500">
+                    Supports .pem, .crt, .cer, .der, .p7b
+                  </span>
+                </label>
 
-                      <label htmlFor="dnsZoneUpload" className="cursor-pointer">
-                        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/[0.02]">
-                          <Upload className="h-6 w-6 text-zinc-400" />
-                        </div>
+                {files.length > 0 && (() => {
+                  const q = fileQuery.trim().toLowerCase();
+                  const matches = q
+                    ? files
+                        .map((f, i) => ({ file: f, index: i }))
+                        .filter(({ file }) => file.name.toLowerCase().includes(q))
+                    : files.map((f, i) => ({ file: f, index: i }));
 
-                        <p className="mt-5 text-lg text-zinc-300">
-                          Click to upload DNS zone file
-                        </p>
-
-                        <p className="mt-2 text-sm text-zinc-500">
-                          Supports BIND zone files (.zone, .db, .txt)
-                        </p>
-                      </label>
-                    </div>
-
-                    {dnsFile && (
-                      <div className="rounded-lg border border-white/10 bg-black/40 px-4 py-3">
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="min-w-0">
-                            <p className="truncate text-sm text-zinc-300">
-                              {dnsFile.name}
-                            </p>
-                            <p className="text-xs text-zinc-600">
-                              {(dnsFile.size / 1024).toFixed(2)} KB
-                            </p>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => setDnsFile(null)}
-                            className="text-xs text-red-400 transition hover:text-red-300"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="sticky bottom-0 z-10 flex items-center justify-between rounded-xl border border-white/10 bg-[#0a0a0d]/95 p-4 backdrop-blur">
-                      <div>
-                        <p className="text-sm text-zinc-300">
-                          Ready to parse & scan
-                        </p>
-                        <p className="text-xs text-zinc-500">
-                          {dnsFile
-                            ? "1 DNS zone file queued"
-                            : "No DNS zone file selected"}
-                        </p>
-                      </div>
-
+                  return (
+                    <div className="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/30">
                       <button
                         type="button"
-                        onClick={handleDnsZoneScan}
-                        disabled={loading || !dnsFile}
-                        className="inline-flex items-center gap-2 rounded-md bg-emerald-400 px-5 py-3 text-sm font-medium text-black transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={() => setFilesExpanded((v) => !v)}
+                        className="flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left transition hover:bg-zinc-900/50"
+                        aria-expanded={filesExpanded}
                       >
-                        <Search className="h-4 w-4" />
-                        {loading ? "Scanning..." : "Parse & Scan"}
+                        <div className="flex items-center gap-2">
+                          {filesExpanded ? (
+                            <ChevronDown className="h-3.5 w-3.5 text-zinc-500" />
+                          ) : (
+                            <ChevronRight className="h-3.5 w-3.5 text-zinc-500" />
+                          )}
+                          <p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">
+                            {files.length} file{files.length === 1 ? "" : "s"} selected
+                          </p>
+                        </div>
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFiles([]);
+                            setFileQuery("");
+                            setFilesExpanded(false);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setFiles([]);
+                              setFileQuery("");
+                              setFilesExpanded(false);
+                            }
+                          }}
+                          className="cursor-pointer text-xs font-mono text-red-400 transition hover:text-red-300"
+                        >
+                          Clear all
+                        </span>
                       </button>
-                    </div>
-                  </div>
-                )}
 
-                {activeTab === "upload-certificate" && (
-                  <div className="space-y-6">
-                    <div className="rounded-lg border border-dashed border-white/10 bg-[#0b0b0e] px-6 py-12 text-center transition hover:border-emerald-400/30">
-                      <div>
-                        <label className="mb-3 block text-xs uppercase tracking-[0.2em] text-zinc-500">
-                          Scan Name
-                        </label>
-                        <input
-                          type="text"
-                          value={scanName}
-                          onChange={(e) => setScanName(e.target.value)}
-                          placeholder="Optional for single target/file, required for multiple"
-                          className="w-full rounded-md border border-white/10 bg-black px-4 py-3 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-emerald-400/50"
-                        />
-                      </div>
-                      <input
-                        type="file"
-                        multiple
-                        accept=".pem,.crt,.cer,.der,.p7b"
-                        onChange={handleFileChange}
-                        className="hidden"
-                        id="fileUpload"
-                      />
-
-                      <label htmlFor="fileUpload" className="cursor-pointer">
-                        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/[0.02]">
-                          <Upload className="h-6 w-6 text-zinc-400" />
-                        </div>
-
-                        <p className="mt-5 text-lg text-zinc-300">
-                          Click to upload certificates
-                        </p>
-
-                        <p className="mt-2 text-sm text-zinc-500">
-                          Supports .pem, .crt, .cer, .der, .p7b
-                        </p>
-                      </label>
-                    </div>
-
-                    {files.length > 0 && (
-                      <div className="rounded-lg border border-white/10 bg-black/40">
-                        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-                          <div>
-                            <p className="text-sm font-medium text-zinc-200">
-                              Selected Certificates
-                            </p>
-                            <p className="text-xs text-zinc-500">
-                              {files.length} files selected
-                            </p>
-                          </div>
-
-                          <button
-                            onClick={() => setFiles([])}
-                            className="text-xs text-red-400 hover:text-red-300"
-                          >
-                            Clear All
-                          </button>
-                        </div>
-
-                        <div className="max-h-[300px] overflow-y-auto">
-                          {files.map((f, i) => (
-                            <div
-                              key={i}
-                              className="flex items-center justify-between border-b border-white/5 px-4 py-3"
-                            >
-                              <div className="min-w-0">
-                                <p className="truncate text-sm text-zinc-300">
-                                  {f.name}
-                                </p>
-
-                                <p className="text-xs text-zinc-600">
-                                  {(f.size / 1024).toFixed(2)} KB
-                                </p>
-                              </div>
-
-                              <button
-                                onClick={() => removeFile(i)}
-                                className="ml-4 text-xs text-red-400 hover:text-red-300"
-                              >
-                                Remove
-                              </button>
+                      {filesExpanded && (
+                        <div className="border-t border-zinc-800">
+                          <div className="border-b border-zinc-800 px-3 py-2">
+                            <div className="relative">
+                              <Search
+                                size={12}
+                                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-600"
+                              />
+                              <input
+                                type="text"
+                                value={fileQuery}
+                                onChange={(e) => setFileQuery(e.target.value)}
+                                placeholder="Search filenames…"
+                                className="w-full rounded-md border border-zinc-800 bg-zinc-900/50 py-1.5 pl-7 pr-3 text-xs font-mono text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-emerald-400/50"
+                              />
                             </div>
-                          ))}
+                            {q && (
+                              <p className="mt-1.5 font-mono text-[10px] text-zinc-600">
+                                {matches.length} of {files.length} match &ldquo;{fileQuery}&rdquo;
+                              </p>
+                            )}
+                          </div>
+                          <div className="max-h-[220px] overflow-y-auto">
+                            {matches.length === 0 ? (
+                              <p className="px-4 py-6 text-center font-mono text-xs text-zinc-600">
+                                No filenames match
+                              </p>
+                            ) : (
+                              matches.map(({ file, index }) => (
+                                <div
+                                  key={`${file.name}-${index}`}
+                                  className="flex items-center justify-between border-b border-zinc-800/60 px-4 py-2 last:border-b-0"
+                                >
+                                  <div className="min-w-0">
+                                    <p className="truncate font-mono text-xs text-zinc-200">{file.name}</p>
+                                    <p className="font-mono text-[10px] text-zinc-600">
+                                      {(file.size / 1024).toFixed(2)} KB
+                                    </p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeFile(index)}
+                                    className="ml-4 text-xs font-mono text-red-400 transition hover:text-red-300"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              ))
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
-
-                    <div className="sticky bottom-0 z-10 flex items-center justify-between rounded-xl border border-white/10 bg-[#0a0a0d]/95 p-4 backdrop-blur">
-                      <div>
-                        <p className="text-sm text-zinc-300">
-                          Ready to analyse
-                        </p>
-
-                        <p className="text-xs text-zinc-500">
-                          {files.length} certificate files queued
-                        </p>
-                      </div>
-
-                      <button
-                        onClick={handleUpload}
-                        disabled={loading || files.length === 0}
-                        className="inline-flex items-center gap-2 rounded-md bg-emerald-400 px-5 py-3 text-sm font-medium text-black transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <Search className="h-4 w-4" />
-
-                        {loading ? "Processing..." : "Analyse Certificates"}
-                      </button>
+                      )}
                     </div>
-                  </div>
-                )}
-              </Card>
+                  );
+                })()}
+              </div>
+            )}
+          </Card>
+
+          {error && (
+            <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3">
+              <p className="font-mono text-xs text-red-400">{error}</p>
             </div>
+          )}
+
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-zinc-800 bg-zinc-900/40 px-6 py-5">
+            <div className="min-w-0">
+              <p className="text-xs font-mono uppercase tracking-[0.2em] text-zinc-500">
+                Ready
+              </p>
+              <p className="mt-1.5 truncate font-mono text-sm text-zinc-300">
+                {tabConfig.queueLabel}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={tabConfig.onSubmit}
+              disabled={tabConfig.submitDisabled}
+              className="inline-flex shrink-0 items-center gap-2 rounded-md bg-emerald-400 px-6 py-3 text-sm font-mono font-medium text-black transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Search className="h-4 w-4" />
+              {tabConfig.submitLabel}
+            </button>
           </div>
         </div>
       </div>

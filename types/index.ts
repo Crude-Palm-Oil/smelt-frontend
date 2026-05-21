@@ -38,11 +38,7 @@ export interface Alert {
 
 export interface Report {
   id: string;
-  domain: string;
-  date: string;
-  certs: number;
   status: ComplianceStatus;
-  format: string;
   pdf_status: "Ready" | "Generating" | "Pending" | "Failed"
 }
 
