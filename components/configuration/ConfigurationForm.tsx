@@ -62,9 +62,6 @@ const availableCipherSuites: CipherSuite[] = [
 
 const cipherGroups = ["All", "TLS 1.3", "TLS 1.2", "AES", "CHACHA20", "GCM", "CBC", "ECDSA", "RSA"];
 
-const wildcardDomainRegex = /^\*\.(?=.{1,253}$)([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}$/;
-
-const isValidWildcardDomain = (value: string) => wildcardDomainRegex.test(value.trim());
 
 function TopTab({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
   return (
@@ -209,16 +206,6 @@ export default function ConfigurationForm() {
 
     if (!cleanValue) {
       setDomainError("");
-      return;
-    }
-
-    if (!cleanValue.startsWith("*.")) {
-      setDomainError("Wildcard domain must start with *.");
-      return;
-    }
-
-    if (!isValidWildcardDomain(cleanValue)) {
-      setDomainError("Enter a valid wildcard domain, for example *.example.com");
       return;
     }
 
@@ -446,12 +433,7 @@ export default function ConfigurationForm() {
     const cleanDomain = domain.trim();
 
     if (!cleanDomain) {
-      setToast({ variant: "error", title: "Domain Required", message: "Enter a target wildcard domain before saving." });
-      return;
-    }
-
-    if (!isValidWildcardDomain(cleanDomain)) {
-      setToast({ variant: "error", title: "Invalid Domain", message: "Domain must be a valid wildcard domain, for example *.example.com." });
+      setToast({ variant: "error", title: "Domain Required", message: "Enter a target domain before saving." });
       return;
     }
 
@@ -505,7 +487,7 @@ export default function ConfigurationForm() {
       <div className="mx-auto w-full max-w-[1200px]">
         <div className="mb-6">
           <p className="font-mono text-xl uppercase tracking-[0.2em] text-zinc-200">Configuration</p>
-          <p className="mt-2 text-sm text-zinc-500">Manage wildcard domain policies for TLS certificate compliance.</p>
+          <p className="mt-2 text-sm text-zinc-500">Manage domain policies for TLS certificate compliance.</p>
         </div>
 
         <div className="mb-8 flex border-b border-white/10">
@@ -537,7 +519,7 @@ export default function ConfigurationForm() {
               ) : savedConfigs.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-zinc-800 px-5 py-8 text-center">
                   <p className="font-mono text-sm text-zinc-300">No saved configurations found.</p>
-                  <p className="mt-2 text-xs text-zinc-500">Create your first wildcard domain policy to start.</p>
+                  <p className="mt-2 text-xs text-zinc-500">Create your first domain policy to start.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -612,7 +594,7 @@ export default function ConfigurationForm() {
                   {editingDomain ? "Edit Configuration" : "Create Configuration"}
                 </p>
                 <p className="mt-1 text-sm text-zinc-500">
-                  {editingDomain ? `Editing policy for ${editingDomain}` : "Create a new wildcard domain policy."}
+                  {editingDomain ? `Editing policy for ${editingDomain}` : "Create a new domain policy."}
                 </p>
               </div>
 
@@ -629,11 +611,11 @@ export default function ConfigurationForm() {
             <section className="space-y-4">
               <div>
                 <p className="font-mono text-xs uppercase tracking-[0.24em] text-emerald-400">Domain</p>
-                <p className="mt-1 text-sm text-zinc-500">Set the wildcard domain this configuration applies to.</p>
+                <p className="mt-1 text-sm text-zinc-500">Set the domain this configuration applies to.</p>
               </div>
 
-              <Card title="Target Domain" subtitle="Wildcard domains must start with *." icon={<Settings className="h-4 w-4" />}>
-                <label htmlFor="domain" className="block text-xs font-mono uppercase tracking-[0.2em] text-zinc-500">Wildcard Domain</label>
+              <Card title="Target Domain" subtitle="Input must be a domain." icon={<Settings className="h-4 w-4" />}>
+                <label htmlFor="domain" className="block text-xs font-mono uppercase tracking-[0.2em] text-zinc-500"> Domain</label>
 
                 <input
                   id="domain"
@@ -651,7 +633,7 @@ export default function ConfigurationForm() {
                 />
 
                 {domainError && <p className="mt-2 text-xs font-mono text-red-400">{domainError}</p>}
-                {!domainError && domain && <p className="mt-2 text-xs font-mono text-emerald-400">Valid wildcard domain</p>}
+                {!domainError && domain && <p className="mt-2 text-xs font-mono text-emerald-400">Valid domain</p>}
               </Card>
             </section>
 
