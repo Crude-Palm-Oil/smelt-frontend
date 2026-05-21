@@ -213,7 +213,7 @@ export default function ScanPage() {
     }
 
     const fallbackName =
-      targets[0]?.domain || targets[0]?.ip_address || "target-scan";
+      targets[0]?.domain || targets[0]?.ip_address;
 
     setLoading(true);
 
@@ -309,7 +309,8 @@ export default function ScanPage() {
                         rows={4}
                         value={targetsInput}
                         onChange={(e) => setTargetsInput(e.target.value)}
-                        placeholder="example.com:443\n192.168.1.1:443"
+                        placeholder="example.com:443 
+                                    192.168.1.1:443"
                         className="w-full resize-none rounded-md border border-white/10 bg-black px-4 py-3 text-sm text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-emerald-400/50"
                       />
                       <p className="mt-3 text-sm leading-6 text-zinc-500">
