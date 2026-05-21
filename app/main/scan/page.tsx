@@ -48,18 +48,18 @@ function Card({
 }) {
   return (
     <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/40">
-      <div className="border-b border-zinc-800 px-4 py-3">
-        <div className="flex items-center gap-2.5">
+      <div className="border-b border-zinc-800 px-6 py-5">
+        <div className="flex items-center gap-3">
           {icon ? <span className="text-emerald-400">{icon}</span> : null}
-          <h2 className="text-sm font-mono font-semibold uppercase tracking-widest text-zinc-100">
+          <h2 className="text-base font-mono font-semibold uppercase tracking-[0.18em] text-zinc-100">
             {title}
           </h2>
         </div>
         {subtitle ? (
-          <p className="mt-0.5 text-xs text-zinc-500">{subtitle}</p>
+          <p className="mt-1.5 text-sm text-zinc-500">{subtitle}</p>
         ) : null}
       </div>
-      <div className="px-4 py-4">{children}</div>
+      <div className="px-6 py-6">{children}</div>
     </div>
   );
 }
@@ -283,12 +283,12 @@ export default function ScanPage() {
   })();
 
   return (
-    <div className="p-6">
-      <div className="mx-auto w-full max-w-2xl">
-        <div className="mb-4 flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/40 px-4 py-3">
+    <div className="px-8 py-6">
+      <div className="mx-auto w-full max-w-[1200px]">
+        <div className="mb-4 rounded-xl border border-zinc-800 bg-zinc-900/40 px-6 py-4">
           <label
             htmlFor="scanName"
-            className="shrink-0 text-[10px] font-mono uppercase tracking-widest text-zinc-500"
+            className="block text-xs font-mono uppercase tracking-[0.2em] text-zinc-500"
           >
             Scan Name
           </label>
@@ -297,9 +297,12 @@ export default function ScanPage() {
             type="text"
             value={scanName}
             onChange={(e) => setScanName(e.target.value)}
-            placeholder="my-tls-audit — optional for single, required for multiple"
-            className="w-full rounded-md border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm font-mono text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-emerald-400/50"
+            placeholder="my-tls-audit"
+            className="mt-3 w-full rounded-md border border-zinc-800 bg-zinc-900/50 px-4 py-3 text-sm font-mono text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-emerald-400/50"
           />
+          <p className="mt-2 text-xs text-zinc-500">
+            Optional for a single target / file. Required when scanning multiple.
+          </p>
         </div>
 
         <div className="mb-4 flex border-b border-zinc-800">
@@ -323,10 +326,10 @@ export default function ScanPage() {
         <div className="space-y-4">
           <Card title={tabConfig.title} subtitle={tabConfig.subtitle} icon={tabConfig.icon}>
             {activeTab === "domain-ip" && (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <label
                   htmlFor="targetsInput"
-                  className="block text-[10px] font-mono uppercase tracking-widest text-zinc-500"
+                  className="block text-xs font-mono uppercase tracking-[0.2em] text-zinc-500"
                 >
                   Targets
                 </label>
@@ -336,9 +339,9 @@ export default function ScanPage() {
                   value={targetsInput}
                   onChange={(e) => setTargetsInput(e.target.value)}
                   placeholder={"example.com:443\n192.168.1.1:443\nmail.example.com"}
-                  className="w-full resize-none rounded-md border border-zinc-800 bg-zinc-900/50 px-3 py-2 text-sm font-mono text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-emerald-400/50"
+                  className="w-full resize-none rounded-md border border-zinc-800 bg-zinc-900/50 px-4 py-3 text-sm font-mono text-zinc-200 outline-none placeholder:text-zinc-600 focus:border-emerald-400/50"
                 />
-                <p className="text-xs text-zinc-500">
+                <p className="text-sm text-zinc-500">
                   One target per line or comma-separated. Append{" "}
                   <span className="font-mono text-zinc-400">:port</span> to override the default of 443.
                 </p>
@@ -356,15 +359,15 @@ export default function ScanPage() {
                 />
                 <label
                   htmlFor="dnsZoneUpload"
-                  className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-6 text-center transition hover:border-emerald-400/40 hover:bg-zinc-900/50"
+                  className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-8 text-center transition hover:border-emerald-400/40 hover:bg-zinc-900/50"
                 >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900/60">
-                    <Upload className="h-4 w-4 text-zinc-400" />
+                  <span className="flex h-14 w-14 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900/60">
+                    <Upload className="h-6 w-6 text-zinc-400" />
                   </span>
-                  <span className="mt-3 text-sm font-mono text-zinc-200">
+                  <span className="mt-5 text-base font-mono text-zinc-200">
                     Click to upload DNS zone file
                   </span>
-                  <span className="mt-1 text-xs text-zinc-500">
+                  <span className="mt-2 text-sm text-zinc-500">
                     Supports BIND zone files (.zone, .db, .txt)
                   </span>
                 </label>
@@ -401,15 +404,15 @@ export default function ScanPage() {
                 />
                 <label
                   htmlFor="fileUpload"
-                  className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-6 text-center transition hover:border-emerald-400/40 hover:bg-zinc-900/50"
+                  className="flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-zinc-800 bg-zinc-900/30 px-6 py-8 text-center transition hover:border-emerald-400/40 hover:bg-zinc-900/50"
                 >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900/60">
-                    <Upload className="h-4 w-4 text-zinc-400" />
+                  <span className="flex h-14 w-14 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900/60">
+                    <Upload className="h-6 w-6 text-zinc-400" />
                   </span>
-                  <span className="mt-3 text-sm font-mono text-zinc-200">
+                  <span className="mt-5 text-base font-mono text-zinc-200">
                     Click to upload certificates
                   </span>
-                  <span className="mt-1 text-xs text-zinc-500">
+                  <span className="mt-2 text-sm text-zinc-500">
                     Supports .pem, .crt, .cer, .der, .p7b
                   </span>
                 </label>
@@ -529,15 +532,20 @@ export default function ScanPage() {
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-zinc-800 bg-zinc-900/40 px-4 py-3">
-            <p className="min-w-0 truncate font-mono text-xs text-zinc-400">
-              {tabConfig.queueLabel}
-            </p>
+          <div className="flex items-center justify-between gap-4 rounded-xl border border-zinc-800 bg-zinc-900/40 px-6 py-5">
+            <div className="min-w-0">
+              <p className="text-xs font-mono uppercase tracking-[0.2em] text-zinc-500">
+                Ready
+              </p>
+              <p className="mt-1.5 truncate font-mono text-sm text-zinc-300">
+                {tabConfig.queueLabel}
+              </p>
+            </div>
             <button
               type="button"
               onClick={tabConfig.onSubmit}
               disabled={tabConfig.submitDisabled}
-              className="inline-flex shrink-0 items-center gap-2 rounded-md bg-emerald-400 px-4 py-2 text-sm font-mono font-medium text-black transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex shrink-0 items-center gap-2 rounded-md bg-emerald-400 px-6 py-3 text-sm font-mono font-medium text-black transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Search className="h-4 w-4" />
               {tabConfig.submitLabel}
