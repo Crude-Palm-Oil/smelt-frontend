@@ -11,87 +11,96 @@ import { getDashboardSummary } from "@/lib/server/dashboard";
 type StatCard = {
   label: string;
   value: string | number;
-  sub: string;
   href: string;
   color: string;
-  iconBg: string;
+  bg: string;
   icon: LucideIcon;
 };
 
+function getPassRateColor(passRate: number) {
+  if (passRate >= 90) {
+    return {
+      color: "text-emerald-400",
+      bg: "bg-emerald-500/10",
+    };
+  }
+
+  if (passRate >= 70) {
+    return {
+      color: "text-amber-400",
+      bg: "bg-amber-500/10",
+    };
+  }
+
+  return {
+    color: "text-red-400",
+    bg: "bg-red-500/10",
+  };
+}
+
 export default async function StatsCards() {
   const summary = await getDashboardSummary();
+  const passRateTone = getPassRateColor(summary.compliance_pass_rate);
 
   const stats: StatCard[] = [
     {
       label: "Compliance Pass Rate",
-      value: `${summary.compliance_pass_rate}%`,
-      sub: `${summary.passed_checks + summary.warning_checks}/${
-        summary.total_checks
-      } checks passed or warned`,
+      value: `${summary.acceptable_checks}/${summary.total_checks}`,
       href: "/main/dashboard/compliance-pass-rate",
-      color: "text-emerald-400",
-      iconBg: "bg-emerald-500/10",
+      color: passRateTone.color,
+      bg: passRateTone.bg,
       icon: ShieldCheck,
     },
     {
-      label: "Critical / Fatal Findings",
+      label: "Critical Findings",
       value: summary.critical_fatal_findings,
-      sub: "Failed or fatal compliance findings",
       href: "/main/dashboard/critical-findings",
       color: "text-fuchsia-400",
-      iconBg: "bg-fuchsia-500/10",
+      bg: "bg-fuchsia-500/10",
       icon: TriangleAlert,
     },
     {
       label: "Expired Certificates",
       value: summary.expired_certificates ?? 0,
-      sub: "Certificates already expired",
-      href: "/main/dashboard/expiring-soon",
+      href: "/main/dashboard/expiring-soon?tab=expired",
       color: "text-red-400",
-      iconBg: "bg-red-500/10",
+      bg: "bg-red-500/10",
       icon: CircleX,
     },
     {
       label: "Expiring Soon",
       value: summary.expiring_soon ?? 0,
-      sub: "Validity warnings requiring review",
-      href: "/main/dashboard/expiring-soon",
-      color: "text-yellow-400",
-      iconBg: "bg-yellow-500/10",
+      href: "/main/dashboard/expiring-soon?tab=expiring-soon",
+      color: "text-amber-400",
+      bg: "bg-amber-500/10",
       icon: ClockAlert,
     },
   ];
 
   return (
-    <div className="grid grid-cols-4 gap-6">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {stats.map((stat) => {
         const Icon = stat.icon;
 
         return (
-          <Link key={stat.label} href={stat.href} className="group">
-            <div className="h-full rounded-xl border border-zinc-800 bg-zinc-950 p-6 transition group-hover:border-emerald-400/50 group-hover:bg-zinc-900">
-              <div className="mb-5 flex items-start justify-between gap-4">
-                <div className={`rounded-md p-2 ${stat.iconBg}`}>
-                  <Icon size={18} className={stat.color} />
-                </div>
+          <Link
+            key={stat.label}
+            href={stat.href}
+            className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-4 text-left transition hover:border-zinc-700 hover:bg-zinc-900/80"
+          >
+            <div className="flex items-center gap-2">
+              <span className={`${stat.color} ${stat.bg} rounded-md p-1.5`}>
+                <Icon size={16} />
+              </span>
 
-                <span className="text-xs text-zinc-600 transition group-hover:text-emerald-400">
-                  View →
-                </span>
-              </div>
-
-              <p className="text-xs uppercase tracking-[0.3em] text-zinc-500">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">
                 {stat.label}
               </p>
-
-              <p className={`mt-4 text-3xl font-semibold ${stat.color}`}>
-                {stat.value}
-              </p>
-
-              <p className="mt-2 text-xs leading-5 text-zinc-500">
-                {stat.sub}
-              </p>
             </div>
+
+            <p className={`mt-2 font-mono text-2xl font-semibold ${stat.color}`}>
+              {stat.value}
+            </p>
           </Link>
         );
       })}

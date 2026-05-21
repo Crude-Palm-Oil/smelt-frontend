@@ -30,6 +30,7 @@ export type DashboardSummary = {
   critical_fatal_findings: number;
   expiring_soon: number;
   expired_certificates: number;
+  acceptable_checks: number;
 };
 
 export type RecentScan = {
@@ -102,6 +103,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     critical_fatal_findings: 0,
     expiring_soon: 0,
     expired_certificates: 0,
+    acceptable_checks: 0,
   });
 }
 
