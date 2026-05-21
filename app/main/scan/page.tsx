@@ -382,6 +382,44 @@ export default function ScanPage() {
     );
   };
 
+  const isValidCronField = (
+    field: string,
+    min: number,
+    max: number,
+    allowQuestionMark = false,
+  ) => {
+    const base = allowQuestionMark ? "[*?]" : "\\*";
+    const number = `(?:${min === 0 ? "[0-9]" : "[1-9][0-9]*"})`;
+    const value = `(?:${base}|${number})`;
+    const range = `(?:${number}-${number})`;
+    const step = `(?:(?:${base}|${number}|${range})/${number})`;
+    const list = `(?:${value}|${range}|${step})(?:,(?:${value}|${range}|${step}))*`;
+
+    const regex = new RegExp(`^${list}$`);
+
+    if (!regex.test(field)) return false;
+
+    const numbers = field.match(/\d+/g)?.map(Number) ?? [];
+
+    return numbers.every((n) => n >= min && n <= max);
+  };
+
+  const isValidCronExpression = (cron: string) => {
+    const parts = cron.trim().split(/\s+/);
+
+    if (parts.length !== 5) return false;
+
+    const [minute, hour, dayOfMonth, month, dayOfWeek] = parts;
+
+    return (
+      isValidCronField(minute, 0, 59) &&
+      isValidCronField(hour, 0, 23) &&
+      isValidCronField(dayOfMonth, 1, 31) &&
+      isValidCronField(month, 1, 12) &&
+      isValidCronField(dayOfWeek, 0, 7)
+    );
+  };
+
   const buildCron = () => {
     if (!isRecurring) return null;
 
@@ -392,8 +430,11 @@ export default function ScanPage() {
         return { error: "Custom cron pattern is required." };
       }
 
-      if (value.split(/\s+/).length !== 5) {
-        return { error: "Cron pattern must contain 5 fields." };
+      if (!isValidCronExpression(value)) {
+        return {
+          error:
+            "Invalid cron pattern. Use 5 fields: minute hour day-of-month month day-of-week. Example: 30 4 1,15 * 5",
+        };
       }
 
       return { cron: value };
