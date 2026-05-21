@@ -159,23 +159,15 @@ export async function scanDomain(target: string, port?: number) {
   throw new Error("Not implemented — use mock data");
 }
 
+/** Fetches all scans with their report generation status from the reports service.
+ *  Called server-side in ScanResultPage to pre-populate ReportBox initial state. */
 export async function getReports() {
   const res = await fetch(`${REPORT_API}/api/reports`, { cache: "no-store" })
   if (!res.ok) {
-    // Reports service is optional for the detail page (the rest of the
-    // page renders fine without PDF status). Don't bring the page down.
     console.warn(`getReports failed (${res.status})`);
     return [];
   }
   return res.json()
-}
-
-export async function generateReport(scanId: string): Promise<void> {
-  await fetch(`${REPORT_API}/api/reports/generate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ scan_id: scanId }),
-  })
 }
 
 export async function getPolicyProfiles() {

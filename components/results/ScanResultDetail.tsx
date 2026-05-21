@@ -346,18 +346,25 @@ function SummaryPill({
   );
 }
 
-
+/**
+ * Meta card variant for report generation status.
+ * Receives initialStatus from the server (pre-fetched in ScanResultPage)
+ * Auto triggers generation on scan if status is not already Ready.
+ * View/download buttons are disabled until status reaches Ready.
+ */
 function ReportBox({ scanId, initialStatus }: { scanId: string, initialStatus: string }) {
   const [status, setStatus] = useState<"Pending" | "Generating" | "Ready" | "Failed">(
     initialStatus as "Pending" | "Generating" | "Ready" | "Failed"
   )
 
+  // Trigger generation on scan if report is not already ready
   useEffect(() => {
     if (status !== "Ready") {
       triggerGenerate(scanId)
     }
   }, [scanId])
-
+  
+  // POSTs to /api/reports/generate
   function triggerGenerate(id: string) {
     setStatus("Generating")
     fetch(`/api/reports/generate`, {
@@ -369,10 +376,12 @@ function ReportBox({ scanId, initialStatus }: { scanId: string, initialStatus: s
       .catch(() => setStatus("Failed"))
   }
 
+  // Opens HTML report inline in a new tab via /api/reports/serve/{scan_id}
   const handleView = () => {
     window.open(`/api/reports/serve/${scanId}`, "_blank")
   }
 
+  // Forces file download via /api/reports/download/{scan_id}
   const handleDownload = () => {
     const a = document.createElement("a")
     a.href = `/api/reports/download/${scanId}`
