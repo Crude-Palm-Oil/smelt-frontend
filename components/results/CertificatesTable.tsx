@@ -119,16 +119,16 @@ export default function CertificatesTable({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-zinc-800">
+      <div className="overflow-x-auto rounded-xl border border-zinc-800">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-zinc-800 bg-zinc-900/50 text-left text-xs font-mono uppercase tracking-widest text-zinc-500">
               <th className="px-5 py-3">Common Name</th>
               <th className="px-5 py-3">Issuer</th>
-              <th className="px-5 py-3">Earliest Expiry</th>
+              <th className="px-5 py-3">Latest Expiry</th>
               <th className="px-5 py-3">Certs</th>
               <th className="px-5 py-3">Scans</th>
-              <th className="px-5 py-3">Worst</th>
+              <th className="px-5 py-3">Latest</th>
               <th className="px-5 py-3 w-10" />
             </tr>
           </thead>
@@ -151,7 +151,12 @@ export default function CertificatesTable({
                   className="cursor-pointer border-b border-zinc-800/60 transition hover:bg-zinc-900/40 last:border-b-0"
                 >
                   <td className="px-5 py-4">
-                    <p className="font-mono text-zinc-200">{row.commonName}</p>
+                    <p
+                      className="font-mono text-zinc-200 truncate max-w-[280px]"
+                      title={row.commonName}
+                    >
+                      {row.commonName}
+                    </p>
                   </td>
                   <td className="px-5 py-4 font-mono text-zinc-400 truncate max-w-[180px]">
                     {row.issuerCn ?? "—"}
@@ -164,19 +169,25 @@ export default function CertificatesTable({
                   <td className="px-5 py-4 font-mono text-zinc-300">
                     {row.certCount}
                   </td>
-                  <td className="px-5 py-4 font-mono text-zinc-300">
-                    {row.scanCount}
-                    {row.lastScannedAt && (
-                      <p
-                        className="font-mono text-[10px] text-zinc-600"
-                        title={row.lastScannedAt}
-                      >
-                        last · {timeAgo(row.lastScannedAt)}
-                      </p>
+                  <td className="px-5 py-4 font-mono">
+                    {row.lastScannedAt ? (
+                      <>
+                        <p
+                          className="font-semibold text-zinc-200"
+                          title={row.lastScannedAt}
+                        >
+                          {timeAgo(row.lastScannedAt)}
+                        </p>
+                        <p className="text-[10px] italic text-zinc-600">
+                          {row.scanCount} scan{row.scanCount !== 1 ? "s" : ""} total
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-zinc-600">—</p>
                     )}
                   </td>
                   <td className="px-5 py-4">
-                    <StatusBadge status={(row.worstStatus as LintStatus) ?? "pass"} />
+                    <StatusBadge status={(row.latestStatus as LintStatus) ?? "pass"} />
                   </td>
                   <td className="px-5 py-4 text-zinc-600">
                     <ChevronRight size={14} />

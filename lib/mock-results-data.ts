@@ -57,7 +57,7 @@ export type TargetSummary = {
   firstScannedAt: string | null;
   lastScannedAt: string | null;
   scanCount: number;
-  worstStatus: LintStatus | "na";
+  latestStatus: LintStatus | "na";
   lintsPass: number;
   lintsInfo: number;
   lintsWarn: number;
@@ -67,8 +67,8 @@ export type TargetSummary = {
 
 // Per-certificate history view. Identity is the Subject CN — multiple cert
 // binaries (fingerprints) with the same CN aggregate into one row. `certCount`
-// reports how many distinct certs share this CN; `notAfter` is the soonest
-// expiry across that set.
+// reports how many distinct certs share this CN; `notAfter` is the latest
+// expiry across that set (so renewed certs read as still-valid).
 export type CertificateSummary = {
   commonName: string;
   issuerCn: string | null;
@@ -77,7 +77,7 @@ export type CertificateSummary = {
   firstScannedAt: string | null;
   lastScannedAt: string | null;
   scanCount: number;
-  worstStatus: LintStatus | "na";
+  latestStatus: LintStatus | "na";
   lintsPass: number;
   lintsInfo: number;
   lintsWarn: number;

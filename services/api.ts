@@ -138,7 +138,7 @@ export async function getFinishedScans(): Promise<FinishedScan[]> {
 
 // --- Per-target history --------------------------------------------------
 
-// The backend's `worstStatus` field can be "pass" | "info" | "warn" | "error"
+// The backend's `latestStatus` field can be "pass" | "info" | "warn" | "error"
 // | "fatal" | "NA" | "NE". `toLintStatus` maps "error" → "fail" and falls
 // back to "pass" for unknowns; that's fine for the table badge but loses
 // the "never evaluated" signal. Targets returned by /results/targets always
@@ -153,7 +153,7 @@ export async function getTargets(): Promise<TargetSummary[]> {
   const rows = (await res.json()) as TargetSummary[];
   return rows.map((row) => ({
     ...row,
-    worstStatus: normaliseHistoryStatus(row.worstStatus as string),
+    latestStatus: normaliseHistoryStatus(row.latestStatus as string),
   }));
 }
 
@@ -186,7 +186,7 @@ export async function getCertificates(): Promise<CertificateSummary[]> {
   const rows = (await res.json()) as CertificateSummary[];
   return rows.map((row) => ({
     ...row,
-    worstStatus: normaliseHistoryStatus(row.worstStatus as string),
+    latestStatus: normaliseHistoryStatus(row.latestStatus as string),
   }));
 }
 

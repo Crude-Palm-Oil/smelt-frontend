@@ -24,7 +24,6 @@ import {
   FileText,
   FileBarChart,
   Settings,
-  Activity,
   LucideIcon,
 } from "lucide-react";
 
@@ -35,10 +34,13 @@ export type NavItem = {
   icon: LucideIcon;
 }
 
+// Monitoring was folded into Results (Ongoing Scans widget moved to the
+// top of the Scans tab). The /monitoring route still exists as a
+// redirect shim — keep the ROUTES constant so any stale references
+// resolve to a working URL.
 export const NAV_ITEMS: NavItem[] = [
   { id: "dashboard", label: "Dashboard", href: ROUTES.DASHBOARD, icon: LayoutDashboard },
   { id: "scan", label: "Scan", href: ROUTES.SCAN, icon: Search },
   { id: "results", label: "Results", href: ROUTES.RESULTS, icon: FileText },
   { id: "config", label: "Configuration", href: ROUTES.CONFIGURATION, icon: Settings },
-  { id: "monitoring", label: "Monitoring", href: ROUTES.MONITORING, icon: Activity },
 ];

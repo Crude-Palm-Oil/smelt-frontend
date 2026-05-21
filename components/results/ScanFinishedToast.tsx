@@ -4,6 +4,11 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
+// NOTE: The query param is still `?scan=finished` for compatibility with
+// the scan-submission flow (owned by the scan team). Semantically the
+// toast now confirms "scan added" — it fires the moment the user lands
+// here after submitting, not when the scan actually completes. Rename
+// the param + this component together when the scan team is ready.
 export default function ScanFinishedToast() {
   const searchParams = useSearchParams();
   const [showToast, setShowToast] = useState(false);
@@ -32,15 +37,12 @@ export default function ScanFinishedToast() {
           <CheckCircle2 className="h-5 w-5" />
         </div>
 
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <p className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">
-            Scan Finished
+            Scan Added
           </p>
-
-          <p className="mt-1 text-sm text-zinc-300">Scan already finished!</p>
-
-          <p className="mt-1 text-xs leading-5 text-zinc-500">
-            The compliance results are ready to review.
+          <p className="mt-1 text-sm text-zinc-300">
+            Your scan is queued and running in the background.
           </p>
         </div>
 

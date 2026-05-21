@@ -94,7 +94,7 @@ export default function HistoryTimeline({ items }: { items: HistoryItem[] }) {
               aria-hidden
             />
             <Link
-              href={`/main/results/scan/${item.scanId}`}
+              href={`/main/results/scan/${item.scanId}?lint=${item.lintId}`}
               className={`group my-1 flex flex-1 items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-900/30 px-4 py-3 transition hover:border-zinc-700 hover:bg-zinc-900/60 ${
                 idx === 0 ? "ring-1 ring-inset ring-emerald-500/10" : ""
               }`}

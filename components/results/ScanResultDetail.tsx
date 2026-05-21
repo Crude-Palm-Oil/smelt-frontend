@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   CheckCircle2,
   XCircle,
@@ -104,10 +105,12 @@ function LintCard({
   lint,
   expanded,
   onToggle,
+  highlighted,
 }: {
   lint: Lint;
   expanded: boolean;
   onToggle: () => void;
+  highlighted: boolean;
 }) {
   // Default to actionable findings (warn/error/fatal) — there are typically
   // hundreds of NA/pass entries that drown out what the user actually needs
@@ -170,7 +173,14 @@ function LintCard({
   })();
 
   return (
-    <div className="overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900/30">
+    <div
+      id={`lint-${lint.id}`}
+      className={`overflow-hidden rounded-lg border bg-zinc-900/30 transition ${
+        highlighted
+          ? "border-emerald-500/60 ring-2 ring-emerald-500/30 shadow-[0_0_24px_rgba(52,211,153,0.18)]"
+          : "border-zinc-800"
+      }`}
+    >
       <button
         onClick={onToggle}
         className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-zinc-900/60"
@@ -541,6 +551,52 @@ export default function ScanResultDetail({
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
+  // Deep-link hint: when the user arrived from a Target/Certificate history
+  // timeline, the previous page appended `?lint=<lintId>` so we know which
+  // row they were actually looking at. We auto-expand that card, scroll it
+  // into view, and apply a brief emerald ring so it stands out — without
+  // this they'd have to scan the whole list to find their cert again.
+  //
+  // `firedRef` guards against the AutoRefresh component (polls every 10s
+  // and re-runs server fetches) re-running this effect and yanking the
+  // user back to the focused card mid-interaction. Fire once per focusLintId.
+  const searchParams = useSearchParams();
+  const focusLintId = searchParams.get("lint");
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const firedRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!focusLintId) return;
+    if (firedRef.current === focusLintId) return;
+    const hit = lints.find((l) => l.id === focusLintId);
+    if (!hit) return;
+
+    firedRef.current = focusLintId;
+
+    setExpandedIds((prev: Set<string>) => {
+      const next = new Set(prev);
+      next.add(hit.id);
+      return next;
+    });
+    setHighlightId(hit.id);
+
+    // Defer one frame so the card is in the DOM (expanded layout settled)
+    // before we measure for scrolling.
+    const scrollTimer = window.setTimeout(() => {
+      const el = document.getElementById(`lint-${hit.id}`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+
+    // Drop the highlight after a few seconds so the page settles into its
+    // normal state — the ring is an arrival cue, not a permanent marker.
+    const fadeTimer = window.setTimeout(() => setHighlightId(null), 2500);
+
+    return () => {
+      window.clearTimeout(scrollTimer);
+      window.clearTimeout(fadeTimer);
+    };
+  }, [focusLintId, lints]);
+
   const visibleLints = searchQuery
     ? sortedLints.filter((lint) => {
         const q = searchQuery.toLowerCase();
@@ -742,6 +798,7 @@ export default function ScanResultDetail({
                 lint={lint}
                 expanded={expandedIds.has(lint.id)}
                 onToggle={() => toggleOne(lint.id)}
+                highlighted={highlightId === lint.id}
               />
             ))}
           </div>

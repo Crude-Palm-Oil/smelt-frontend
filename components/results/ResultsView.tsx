@@ -7,6 +7,8 @@ import type {
   FinishedScan,
   TargetSummary,
 } from "@/lib/mock-results-data";
+import type { OngoingScan } from "@/lib/mock-monitoring-data";
+import OngoingScans from "@/components/monitoring/OngoingScans";
 import ResultsStats, { type SeverityFilter } from "./ResultsStats";
 import ResultsTable from "./ResultsTable";
 import TargetsTable from "./TargetsTable";
@@ -18,14 +20,20 @@ type Tab = "scans" | "targets" | "certificates";
 // from finished scans) so they don't oscillate when the user switches
 // tabs — the cards are a stable summary of the whole dataset, not the
 // active tab. Severity filter still applies only to the scans table.
+//
+// Ongoing scans render above the Scans tab content only — they're a
+// transient "what's running right now" view that only makes sense next
+// to the finished-scan list.
 export default function ResultsView({
   scans,
   targets,
   certificates,
+  ongoing,
 }: {
   scans: FinishedScan[];
   targets: TargetSummary[];
   certificates: CertificateSummary[];
+  ongoing: OngoingScan[];
 }) {
   const [tab, setTab] = useState<Tab>("scans");
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter | null>(
@@ -64,7 +72,10 @@ export default function ResultsView({
       </div>
 
       {tab === "scans" && (
-        <ResultsTable scans={scans} severityFilter={severityFilter} />
+        <>
+          <OngoingScans scans={ongoing} />
+          <ResultsTable scans={scans} severityFilter={severityFilter} />
+        </>
       )}
       {tab === "targets" && <TargetsTable targets={targets} />}
       {tab === "certificates" && (
