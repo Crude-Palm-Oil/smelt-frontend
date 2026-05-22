@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, ShieldCheck } from "lucide-react";
-
+import { login } from "@/services/api";
+import Cookies from "js-cookie";
 export function LoginForm() {
   const router = useRouter();
 
@@ -13,26 +14,25 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError("");
+  setLoading(true);
 
-    try {
-      // call API
-      await new Promise((res) => setTimeout(res, 1000));
+  try {
+    const result = await login({ email, password });
 
-      if (email === "admin@smelt.com" && password === "password") {
-        router.push("/dashboard");
-      } else {
-        throw new Error("Invalid credentials");
-      }
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    Cookies.set("token", result.access_token, {
+      expires: 1,
+    });
+
+    router.push("/main/dashboard");
+  } catch (err: any) {
+    setError(err.message || "Login failed");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="w-full max-w-md bg-card border border-border rounded-2xl shadow-lg p-8">

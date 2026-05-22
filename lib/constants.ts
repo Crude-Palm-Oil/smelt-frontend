@@ -7,13 +7,44 @@ export const ROUTES = {
   REPORTS: "/reports",
   CONFIGURATION: "/configuration",
   MONITORING: "/monitoring",
+  RECURRING: "/recurring",
 } as const;
 
-export const NAV_ITEMS = [
-  { id: "dashboard", label: "Dashboard", href: ROUTES.DASHBOARD, icon: "LayoutDashboard" },
-  { id: "scan", label: "Scan", href: ROUTES.SCAN, icon: "Search" },
-  { id: "results", label: "Results", href: ROUTES.RESULTS, icon: "FileText" },
-  { id: "reports", label: "Reports", href: ROUTES.REPORTS, icon: "FileBarChart" },
-  { id: "config", label: "Configuration", href: ROUTES.CONFIGURATION, icon: "Settings" },
-  { id: "monitoring", label: "Monitoring", href: ROUTES.MONITORING, icon: "Activity" },
-] as const;
+export const PAGE_TITLES: Record<string, string> = {
+  [ROUTES.DASHBOARD]: "Dashboard",
+  [ROUTES.SCAN]: "Scan",
+  [ROUTES.RESULTS]: "Results",
+  [ROUTES.REPORTS]: "Reports",
+[ROUTES.CONFIGURATION]: "Configuration",
+  [ROUTES.MONITORING]: "Monitoring",
+  [ROUTES.RECURRING]: "Recurring",
+};
+
+import {
+  LayoutDashboard,
+  Search,
+  FileText,
+  FileBarChart,
+  Settings,
+  Repeat,
+  LucideIcon,
+} from "lucide-react";
+
+export type NavItem = {
+  id: string;
+  label: string;
+  href: string;
+  icon: LucideIcon;
+}
+
+// Monitoring was folded into Results (Ongoing Scans widget moved to the
+// top of the Scans tab). The /monitoring route still exists as a
+// redirect shim — keep the ROUTES constant so any stale references
+// resolve to a working URL.
+export const NAV_ITEMS: NavItem[] = [
+  { id: "dashboard", label: "Dashboard", href: ROUTES.DASHBOARD, icon: LayoutDashboard },
+  { id: "scan", label: "Scan", href: ROUTES.SCAN, icon: Search },
+  { id: "results", label: "Results", href: ROUTES.RESULTS, icon: FileText },
+  { id: "recurring", label: "Recurring", href: ROUTES.RECURRING, icon: Repeat },
+  { id: "config", label: "Configuration", href: ROUTES.CONFIGURATION, icon: Settings },
+];

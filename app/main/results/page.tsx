@@ -1,12 +1,39 @@
-export default function resultsPage() {
+import ResultsView from "@/components/results/ResultsView";
+import ScanFinishedToast from "@/components/results/ScanFinishedToast";
+import ScanStartedToast from "@/components/monitoring/ScanStartedToast";
+import AutoRefresh from "@/components/ui/AutoRefresh";
+import {
+  getCertificates,
+  getFinishedScans,
+  getOngoingScans,
+  getTargets,
+} from "@/services/api";
+
+export const dynamic = "force-dynamic";
+
+export default async function ResultsPage() {
+  // Fetched in parallel. Failures degrade gracefully on each fetch path
+  // (each adapter returns [] on 404 / non-ok), so a missing endpoint or
+  // empty table renders an empty tab rather than crashing the page.
+  const [scans, targets, certificates, ongoing] = await Promise.all([
+    getFinishedScans(),
+    getTargets(),
+    getCertificates(),
+    getOngoingScans(),
+  ]);
+
   return (
-    <div>
-      <h1 className="text-sm font-mono text-neutral-300 uppercase tracking-wide">
-        results
-      </h1>
-      <p className="text-xs font-mono text-neutral-500 mt-2">
-        TODO: implement results page
-      </p>
+    <div className="flex flex-col gap-8 p-8">
+      <ScanFinishedToast />
+      <ScanStartedToast />
+      <AutoRefresh />
+
+      <ResultsView
+        scans={scans}
+        targets={targets}
+        certificates={certificates}
+        ongoing={ongoing}
+      />
     </div>
   );
 }

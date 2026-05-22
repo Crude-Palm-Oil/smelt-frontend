@@ -3,11 +3,13 @@ import Topbar from "@/components/layout/Topbar";
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex">
+    <div className="flex h-screen overflow-hidden">
       <Sidebar />
-      <div className="flex-1">
+      <div className="flex flex-1 flex-col overflow-hidden">
         <Topbar />
-        {children}
+        <main className="flex-1 overflow-auto">
+          {children}
+        </main>
       </div>
     </div>
   );
